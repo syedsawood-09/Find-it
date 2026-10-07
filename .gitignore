@@ -1,0 +1,30 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local application data and user uploads
+instance/
+static/uploads/
+.env
+.env.*
+!.env.example
+
+# Android / Gradle machine state and build output
+mobile_apk/.gradle/
+mobile_apk/**/build/
+mobile_apk/local.properties
+mobile_apk/keystore.properties
+mobile_apk/*.keystore
+mobile_apk/*.jks
+
+# Keep the distributable APK, not intermediate build outputs
+mobile_apk/releases/
+!mobile_apk/releases/
+!mobile_apk/releases/FindIt.apk
+
+# IDE files
+.vscode/
+.idea/

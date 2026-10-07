@@ -1,0 +1,7 @@
+<resources>
+    <color name="findit_blue">#1E3A8A</color>
+    <color name="findit_light_blue">#3B82F6</color>
+    <color name="findit_navy">#0F172A</color>
+    <color name="findit_white">#F8FAFC</color>
+    <color name="splash_background">#0B1120</color>
+</resources>

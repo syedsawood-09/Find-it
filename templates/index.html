@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FindIt | Digital Lost & Found Management Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root{
+    --primary:#6366f1;
+    --primary-dark:#4f46e5;
+    --accent:#06b6d4;
+    --accent-2:#f43f5e;
+    --success:#10b981;
+    --warning:#f59e0b;
+    --dark:#0f172a;
+    --dark-2:#1e293b;
+    --light:#f8fafc;
+    --gray:#64748b;
+    --gradient:linear-gradient(135deg,#6366f1 0%,#06b6d4 100%);
+    --gradient-2:linear-gradient(135deg,#f43f5e 0%,#f59e0b 100%);
+    --shadow:0 20px 60px rgba(15,23,42,.15);
+    --shadow-sm:0 8px 24px rgba(15,23,42,.08);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--light);
+    color:var(--dark);
+    overflow-x:hidden;
+    line-height:1.6;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;letter-spacing:-.02em}
+  a{text-decoration:none;color:inherit}
+  ::-webkit-scrollbar{width:10px}
+  ::-webkit-scrollbar-track{background:#e2e8f0}
+  ::-webkit-scrollbar-thumb{background:var(--gradient);border-radius:10px}
+
+  /* ============ SCROLL PROGRESS ============ */
+  .scroll-progress{
+    position:fixed;top:0;left:0;height:4px;width:0%;
+    background:var(--gradient);z-index:10000;
+    transition:width .1s ease;
+    box-shadow:0 0 12px rgba(99,102,241,.8);
+  }
+
+  /* ============ FLOATING BACKGROUND BLOBS ============ */
+  .blob{
+    position:fixed;border-radius:50%;filter:blur(80px);
+    opacity:.35;z-index:-1;pointer-events:none;
+    animation:float 20s infinite ease-in-out;
+  }
+  .blob.b1{width:500px;height:500px;background:#6366f1;top:-150px;left:-150px}
+  .blob.b2{width:400px;height:400px;background:#06b6d4;bottom:-100px;right:-100px;animation-delay:-5s}
+  .blob.b3{width:350px;height:350px;background:#f43f5e;top:50%;left:60%;animation-delay:-10s}
+  @keyframes float{
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(60px,-40px) scale(1.1)}
+    66%{transform:translate(-40px,40px) scale(.95)}
+  }
+
+  /* ============ NAVBAR ============ */
+  .navbar{
+    position:fixed;top:0;left:0;right:0;z-index:999;
+    padding:18px 0;transition:all .4s ease;
+  }
+  .navbar.scrolled{
+    padding:10px 0;
+    background:rgba(255,255,255,.85);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    box-shadow:0 4px 30px rgba(0,0,0,.06);
+  }
+  .nav-inner{
+    max-width:1300px;margin:0 auto;padding:0 32px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:1.4rem}
+  .logo-icon{
+    width:44px;height:44px;border-radius:12px;
+    background:var(--gradient);display:grid;place-items:center;
+    color:#fff;font-size:1.2rem;
+    box-shadow:0 8px 20px rgba(99,102,241,.4);
+    animation:pulse 2.5s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 8px 20px rgba(99,102,241,.4)}
+    50%{box-shadow:0 8px 30px rgba(99,102,241,.7)}
+  }
+  .logo-text span{background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .nav-links{display:flex;gap:8px;list-style:none;align-items:center;margin:0;padding:0}
+  .nav-links li{list-style:none}
+  .nav-links a{
+    padding:10px 18px;border-radius:10px;font-weight:500;
+    font-size:.94rem;color:var(--dark-2);transition:all .3s;
+    position:relative;display:inline-flex;align-items:center;justify-content:center;
+  }
+  .nav-links a:hover{background:rgba(99,102,241,.08);color:var(--primary)}
+  .nav-links a.active{background:var(--gradient);color:#fff;box-shadow:0 8px 20px rgba(99,102,241,.3)}
+
+  .nav-right{display:flex;align-items:center;gap:12px}
+  .lang-select-wrap{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;border:1px solid rgba(99,102,241,.12);background:rgba(255,255,255,.8);box-shadow:0 10px 20px rgba(15,23,42,.04);transition:all .25s ease;transform-origin:center}
+  .lang-select-wrap:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(99,102,241,.12)}
+  .lang-select-wrap i{color:var(--primary)}
+  .lang-select-wrap select{border:0;background:transparent;outline:none;font:inherit;font-weight:700;color:var(--dark-2);cursor:pointer;transition:all .2s ease}
+  .lang-select-wrap select:focus{transform:scale(1.02)}
+
+  @media (max-width:760px){
+    .nav-right{gap:8px}
+    .lang-select-wrap{padding:8px 10px;min-width:110px}
+    .lang-select-wrap select{font-size:.82rem}
+  }
+  @media (max-width:560px){
+    .nav-right{margin-left:auto}
+    .lang-select-wrap{padding:7px 9px;min-width:94px}
+    .lang-select-wrap select{min-width:68px;max-width:68px}
+  }
+
+  .nav-cta{
+    padding:10px 22px;border-radius:10px;background:var(--gradient);
+    color:#fff;font-weight:600;font-size:.9rem;border:none;cursor:pointer;
+    transition:all .3s;box-shadow:0 8px 20px rgba(99,102,241,.35);
+  }
+  .nav-cta:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(99,102,241,.5)}
+
+  .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px}
+  .hamburger span{width:24px;height:2.5px;background:var(--dark);border-radius:2px;transition:.3s}
+  .hamburger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+  .hamburger.active span:nth-child(2){opacity:0}
+  .hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+
+  /* ============ HERO ============ */
+  .hero{
+    min-height:100vh;padding:140px 32px 80px;
+    display:flex;align-items:center;position:relative;overflow:hidden;
+  }
+  .hero-inner{
+    max-width:1300px;margin:0 auto;width:100%;
+    display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center;
+  }
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 18px;border-radius:100px;
+    background:rgba(99,102,241,.1);color:var(--primary);
+    font-size:.85rem;font-weight:600;margin-bottom:24px;
+    border:1px solid rgba(99,102,241,.2);
+  }
+  .hero-badge .dot{
+    width:8px;height:8px;border-radius:50%;background:var(--success);
+    animation:blink 1.5s infinite;
+  }
+  @keyframes blink{50%{opacity:.3}}
+
+  .hero h1{
+    font-size:clamp(2.4rem,5vw,4rem);font-weight:800;line-height:1.1;
+    margin-bottom:24px;
+  }
+  .hero h1 .grad{background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:1.15rem;color:var(--gray);max-width:560px;margin-bottom:36px}
+
+  .hero-btns{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:48px}
+  .btn{
+    padding:16px 32px;border-radius:14px;font-weight:600;font-size:1rem;
+    border:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
+    transition:all .3s;font-family:inherit;
+  }
+  .btn-primary{background:var(--gradient);color:#fff;box-shadow:0 12px 32px rgba(99,102,241,.4)}
+  .btn-primary:hover{transform:translateY(-3px);box-shadow:0 18px 44px rgba(99,102,241,.55)}
+  .btn-ghost{background:rgba(255,255,255,.7);color:var(--dark);border:1.5px solid #e2e8f0;backdrop-filter:blur(10px)}
+  .btn-ghost:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-3px)}
+
+  .hero-trust{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 30px}
+  .trust-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.8);border:1px solid rgba(99,102,241,.12);color:var(--dark-2);font-size:.78rem;font-weight:600;box-shadow:0 10px 25px rgba(15,23,42,.05)}
+  .trust-pill i{color:var(--primary)}
+  .hero-stats{display:flex;gap:40px;flex-wrap:wrap}
+  .hero-stats .stat h3{font-size:2rem;background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero-stats .stat p{font-size:.85rem;color:var(--gray);margin:0}
+
+  .experience-section{padding:120px 32px 20px}
+  .experience-shell{max-width:1300px;margin:0 auto}
+  .focus-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:32px}
+  .focus-card{background:rgba(255,255,255,.82);border:1px solid rgba(99,102,241,.12);border-radius:24px;padding:26px;box-shadow:0 18px 40px rgba(15,23,42,.06);position:relative;overflow:hidden}
+  .focus-card::after{content:'';position:absolute;inset:auto -20% -50% auto;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.12),transparent 60%)}
+  .focus-icon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;color:#fff;margin-bottom:18px;background:var(--gradient);box-shadow:0 12px 24px rgba(99,102,241,.3)}
+  .focus-card h3{font-size:1.25rem;margin-bottom:8px}
+  .focus-card p{margin:0;color:var(--gray)}
+
+  .showcase-band{margin-top:28px;display:grid;grid-template-columns:1.2fr .8fr;gap:22px}
+  .showcase-panel{background:linear-gradient(135deg,rgba(91,76,240,.08),rgba(16,185,129,.08));border:1px solid rgba(91,76,240,.12);border-radius:30px;padding:28px;box-shadow:0 20px 45px rgba(35,25,78,.08)}
+  .showcase-panel h3{font-size:1.45rem;margin:0 0 12px}
+  .showcase-panel p{color:var(--gray);margin:0}
+  .mini-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:22px}
+  .mini-metric{background:rgba(255,255,255,.7);border:1px solid rgba(91,76,240,.08);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:6px}
+  .mini-metric strong{font-size:1.5rem;font-family:'Space Grotesk',sans-serif}
+  .mini-metric span{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .signal-card{padding:26px;background:linear-gradient(135deg,#fff,#f8f7ff);border-radius:26px;border:1px solid rgba(91,76,240,.10);box-shadow:0 18px 40px rgba(15,23,42,.06)}
+  .signal-card h4{font-size:1.05rem;margin:0 0 12px}
+  .signal-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+  .signal-list li{display:flex;align-items:center;gap:10px;color:var(--dark-2);font-weight:600}
+  .signal-list li i{color:var(--primary)}
+
+  /* Hero Visual — floating cards */
+  .hero-visual{position:relative;height:520px;perspective:1200px}
+  .float-card{
+    position:absolute;background:rgba(255,255,255,.9);
+    backdrop-filter:blur(20px);border-radius:20px;
+    padding:20px;box-shadow:var(--shadow);
+    border:1px solid rgba(255,255,255,.6);
+    transition:transform .4s ease;
+  }
+  .float-card:hover{transform:translateY(-8px) rotate(0deg) !important}
+  .fc-1{top:20px;left:0;width:260px;animation:floatY 6s infinite ease-in-out}
+  .fc-2{top:150px;right:20px;width:280px;animation:floatY 7s infinite ease-in-out;animation-delay:-1s}
+  .fc-3{bottom:40px;left:60px;width:240px;animation:floatY 8s infinite ease-in-out;animation-delay:-2s}
+  @keyframes floatY{
+    0%,100%{transform:translateY(0) rotate(-1deg)}
+    50%{transform:translateY(-20px) rotate(1deg)}
+  }
+  .fc-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .fc-icon{
+    width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+    color:#fff;font-size:1rem;
+  }
+  .fc-icon.i1{background:linear-gradient(135deg,#6366f1,#8b5cf6)}
+  .fc-icon.i2{background:linear-gradient(135deg,#f43f5e,#f59e0b)}
+  .fc-icon.i3{background:linear-gradient(135deg,#10b981,#06b6d4)}
+  .fc-title{font-weight:700;font-size:.95rem}
+  .fc-sub{font-size:.78rem;color:var(--gray)}
+  .fc-tag{
+    display:inline-block;padding:4px 12px;border-radius:100px;
+    font-size:.72rem;font-weight:600;margin-top:8px;
+  }
+  .fc-tag.lost{background:rgba(244,63,94,.12);color:var(--accent-2)}
+  .fc-tag.found{background:rgba(16,185,129,.12);color:var(--success)}
+  .fc-tag.match{background:rgba(99,102,241,.12);color:var(--primary)}
+
+  /* ============ SECTION COMMON ============ */
+  section{padding:100px 32px;position:relative}
+  .container{max-width:1300px;margin:0 auto}
+  .sec-head{text-align:center;max-width:700px;margin:0 auto 64px}
+  .sec-eyebrow{
+    display:inline-block;padding:6px 16px;border-radius:100px;
+    background:rgba(99,102,241,.1);color:var(--primary);
+    font-size:.8rem;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;margin-bottom:16px;
+  }
+  .sec-head h2{font-size:clamp(2rem,4vw,2.8rem);font-weight:800;margin-bottom:16px}
+  .sec-head p{color:var(--gray);font-size:1.05rem}
+
+  /* ============ FEATURES ============ */
+  .features-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:24px;
+  }
+  .feature-card{
+    background:#fff;border-radius:24px;padding:36px 28px;
+    border:1px solid #eef2f7;transition:all .4s cubic-bezier(.2,.9,.3,1.2);
+    position:relative;overflow:hidden;
+  }
+  .feature-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:4px;
+    background:var(--gradient);transform:scaleX(0);transform-origin:left;
+    transition:transform .4s ease;
+  }
+  .feature-card:hover::before{transform:scaleX(1)}
+  .feature-card:hover{transform:translateY(-10px);box-shadow:var(--shadow);border-color:transparent}
+  .feature-icon{
+    width:64px;height:64px;border-radius:18px;display:grid;place-items:center;
+    font-size:1.6rem;color:#fff;margin-bottom:22px;
+    background:var(--gradient);box-shadow:0 12px 28px rgba(99,102,241,.35);
+    transition:transform .4s;
+  }
+  .feature-card:hover .feature-icon{transform:rotate(-8deg) scale(1.1)}
+  .feature-card h3{font-size:1.25rem;margin-bottom:10px}
+  .feature-card p{color:var(--gray);font-size:.95rem}
+
+  /* ============ STEPS / HOW IT WORKS ============ */
+  .steps{background:linear-gradient(180deg,#fff 0%,#f1f5f9 100%)}
+  .steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:32px;position:relative}
+  .step{
+    text-align:center;padding:32px 20px;position:relative;
+    background:#fff;border-radius:24px;box-shadow:var(--shadow-sm);
+    transition:all .4s;
+  }
+  .step:hover{transform:translateY(-8px);box-shadow:var(--shadow)}
+  .step-num{
+    width:64px;height:64px;border-radius:50%;margin:0 auto 20px;
+    display:grid;place-items:center;font-weight:800;font-size:1.5rem;
+    color:#fff;background:var(--gradient);position:relative;
+  }
+  .step-num::after{
+    content:'';position:absolute;inset:-6px;border-radius:50%;
+    border:2px dashed rgba(99,102,241,.3);animation:spin 12s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .step h3{font-size:1.15rem;margin-bottom:8px}
+  .step p{color:var(--gray);font-size:.92rem}
+
+  /* ============ LIVE ITEMS GRID ============ */
+  .items-section{background:#fff}
+  .filter-bar{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+    justify-content:space-between;margin-bottom:40px;
+    padding:20px;background:#f8fafc;border-radius:20px;
+    border:1px solid #eef2f7;
+  }
+  .search-wrap{
+    flex:1;min-width:240px;display:flex;align-items:center;gap:10px;
+    background:#fff;padding:12px 18px;border-radius:14px;
+    border:1.5px solid #e2e8f0;transition:all .3s;
+  }
+  .search-wrap:focus-within{border-color:var(--primary);box-shadow:0 0 0 4px rgba(99,102,241,.1)}
+  .search-wrap i{color:var(--gray)}
+  .search-wrap input{border:none;outline:none;flex:1;font-family:inherit;font-size:.95rem;background:transparent}
+  .filter-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+    padding:10px 20px;border-radius:100px;background:#fff;border:1.5px solid #e2e8f0;
+    font-size:.85rem;font-weight:600;cursor:pointer;transition:all .3s;font-family:inherit;
+    color:var(--dark-2);
+  }
+  .chip:hover{border-color:var(--primary);color:var(--primary)}
+  .chip.active{background:var(--gradient);color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(99,102,241,.3)}
+
+  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px}
+  .item-card{
+    background:#fff;border-radius:20px;overflow:hidden;
+    border:1px solid #eef2f7;transition:all .4s cubic-bezier(.2,.9,.3,1.2);
+    cursor:pointer;
+  }
+  .item-card:hover{transform:translateY(-10px);box-shadow:var(--shadow);border-color:transparent}
+  .item-img{
+    height:180px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
+    display:grid;place-items:center;font-size:3.5rem;color:#94a3b8;
+    position:relative;overflow:hidden;
+  }
+  .item-img::after{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(135deg,transparent,rgba(99,102,241,.05));
+  }
+  .item-badge{
+    position:absolute;top:14px;left:14px;padding:6px 14px;
+    border-radius:100px;font-size:.72rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:.05em;
+  }
+  .item-badge.lost{background:rgba(244,63,94,.95);color:#fff}
+  .item-badge.found{background:rgba(16,185,129,.95);color:#fff}
+  .item-body{padding:20px}
+  .item-body h4{font-size:1.05rem;margin-bottom:6px}
+  .item-meta{font-size:.82rem;color:var(--gray);display:flex;align-items:center;gap:6px;margin-bottom:12px}
+  .item-footer{
+    display:flex;justify-content:space-between;align-items:center;
+    padding-top:14px;border-top:1px solid #f1f5f9;
+  }
+  .item-loc{font-size:.8rem;color:var(--gray);display:flex;align-items:center;gap:6px}
+  .item-cta{color:var(--primary);font-weight:600;font-size:.85rem}
+
+  /* ============ CTA BANNER ============ */
+  .cta-banner{
+    background:var(--gradient);border-radius:32px;padding:64px 48px;
+    text-align:center;color:#fff;position:relative;overflow:hidden;
+    box-shadow:0 30px 80px rgba(99,102,241,.35);
+  }
+  .cta-banner::before{
+    content:'';position:absolute;top:-50%;right:-10%;width:400px;height:400px;
+    background:rgba(255,255,255,.1);border-radius:50%;
+  }
+  .cta-banner::after{
+    content:'';position:absolute;bottom:-60%;left:-5%;width:350px;height:350px;
+    background:rgba(255,255,255,.08);border-radius:50%;
+  }
+  .cta-banner h2{font-size:clamp(1.8rem,3.5vw,2.6rem);margin-bottom:16px;position:relative}
+  .cta-banner p{opacity:.9;max-width:600px;margin:0 auto 32px;position:relative}
+  .cta-banner .btn{background:#fff;color:var(--primary);position:relative}
+  .cta-banner .btn:hover{transform:translateY(-3px) scale(1.03)}
+
+  /* ============ FOOTER ============ */
+  footer{background:var(--dark);color:#cbd5e1;padding:72px 32px 32px;position:relative;overflow:hidden}
+  footer::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gradient);
+  }
+  .footer-grid{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+  .footer-brand .logo{color:#fff;margin-bottom:18px}
+  .footer-brand p{color:#94a3b8;font-size:.92rem;margin-bottom:20px}
+  .socials{display:flex;gap:12px}
+  .socials a{
+    width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
+    background:rgba(255,255,255,.06);color:#cbd5e1;transition:all .3s;
+  }
+  .socials a:hover{background:var(--gradient);color:#fff;transform:translateY(-3px)}
+  .footer-col h4{color:#fff;font-size:1rem;margin-bottom:18px}
+  .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .footer-col a{color:#94a3b8;font-size:.9rem;transition:.3s}
+  .footer-col a:hover{color:#fff;padding-left:4px}
+  .footer-bottom{
+    max-width:1300px;margin:0 auto;padding-top:32px;
+    border-top:1px solid rgba(255,255,255,.08);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;
+    font-size:.85rem;color:#94a3b8;
+  }
+
+  /* ============ SCROLL REVEAL ============ */
+  .reveal{opacity:0;transform:translateY(40px);transition:all .9s cubic-bezier(.2,.9,.3,1)}
+  .reveal.visible{opacity:1;transform:translateY(0)}
+  .reveal-left{opacity:0;transform:translateX(-60px);transition:all .9s cubic-bezier(.2,.9,.3,1)}
+  .reveal-left.visible{opacity:1;transform:translateX(0)}
+  .reveal-right{opacity:0;transform:translateX(60px);transition:all .9s cubic-bezier(.2,.9,.3,1)}
+  .reveal-right.visible{opacity:1;transform:translateX(0)}
+  .reveal-scale{opacity:0;transform:scale(.85);transition:all .9s cubic-bezier(.2,.9,.3,1)}
+  .reveal-scale.visible{opacity:1;transform:scale(1)}
+
+  /* ============ RESPONSIVE ============ */
+  @media(max-width:960px){
+    .hero-inner{grid-template-columns:1fr;gap:60px}
+    .hero-visual{height:440px;max-width:480px;margin:0 auto}
+    .footer-grid{grid-template-columns:1fr 1fr;gap:32px}
+  }
+  @media(max-width:768px){
+    .nav-links{
+      position:fixed;top:0;right:-100%;width:280px;height:100vh;
+      background:#fff;flex-direction:column;align-items:stretch;
+      padding:100px 24px 40px;gap:8px;box-shadow:-10px 0 40px rgba(0,0,0,.1);
+      transition:right .4s ease;
+    }
+    .nav-links.open{right:0}
+    .nav-links a{padding:14px 18px}
+    .hamburger{display:flex;z-index:1001}
+    .nav-cta{display:none}
+    section{padding:72px 20px}
+    .cta-banner{padding:48px 24px}
+    .filter-bar{flex-direction:column;align-items:stretch}
+    .footer-grid{grid-template-columns:1fr;gap:32px}
+    .footer-bottom{flex-direction:column;text-align:center}
+  }
+  @media(max-width:480px){
+    .hero{padding:120px 20px 60px}
+    .hero-stats{gap:24px}
+    .hero-stats .stat h3{font-size:1.5rem}
+    .fc-1,.fc-2,.fc-3{width:200px;padding:14px}
+    .hero-visual{height:380px}
+  }
+</style>
+</head>
+<body>
+
+<!-- Scroll progress bar -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- Floating background blobs -->
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-icon"><i class="fas fa-magnifying-glass-location"></i></div>
+      <div class="logo-text">Find<span>It</span></div>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#home" class="active" data-i18n="home">Home</a></li>
+      <li><a href="#features" data-i18n="features">Features</a></li>
+      <li><a href="#how" data-i18n="howItWorks">How It Works</a></li>
+      <li><a href="{{ url_for('items') }}" data-i18n="browseItems">Browse Items</a></li>
+      <li><a href="#contact" data-i18n="contact">Contact</a></li>
+      {% if not session.get('user_id') %}
+      <li><a href="{{ url_for('dashboard') }}" data-i18n="dashboard">Dashboard</a></li>
+      {% endif %}
+    </ul>
+    <div class="nav-right">
+      <label class="lang-select-wrap" aria-label="Choose language">
+        <i class="fa-solid fa-globe"></i>
+        <select id="siteLanguage" aria-label="Site language">
+          <option value="en">EN</option>
+          <option value="kn">ಕನ</option>
+          <option value="hi">हिं</option>
+        </select>
+      </label>
+      {% if session.get('user_id') %}
+      <a class="nav-cta" href="{{ url_for('dashboard') }}" data-i18n="dashboard"><i class="fas fa-user"></i> Dashboard</a>
+      {% else %}
+      <a class="nav-cta" href="{{ url_for('login') }}" data-i18n="login"><i class="fas fa-right-to-bracket"></i> Login</a>
+      {% endif %}
+    </div>
+    <div class="hamburger" id="hamburger">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="home">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge reveal">
+        <span class="dot"></span> Now live at SSMRV College, Jayanagar
+      </div>
+      <h1 class="reveal">
+        Lost something?<br>
+        <span class="grad">We'll help you find it.</span>
+      </h1>
+      <p class="reveal">
+        A centralized digital platform to report, search, match, and recover lost belongings
+        across your campus — replacing notice boards and registers with one smart system.
+      </p>
+      <div class="hero-btns reveal">
+        <button class="btn btn-primary" onclick="scrollToId('items')">
+          <i class="fas fa-magnifying-glass"></i> Browse Items
+        </button>
+        <a class="btn btn-ghost" href="{{ url_for('report') }}">
+          <i class="fas fa-circle-plus"></i> Report an Item
+        </a>
+      </div>
+      <div class="hero-trust reveal">
+        <span class="trust-pill"><i class="fas fa-location-dot"></i> Bengaluru-ready</span>
+        <span class="trust-pill"><i class="fas fa-bolt"></i> AI-assisted matching</span>
+        <span class="trust-pill"><i class="fas fa-shield-heart"></i> Secure claims</span>
+      </div>
+      <div class="hero-stats reveal">
+        <div class="stat">
+          <h3 data-count="1240">0</h3>
+          <p>Items Recovered</p>
+        </div>
+        <div class="stat">
+          <h3 data-count="380">0</h3>
+          <p>Active Reports</p>
+        </div>
+        <div class="stat">
+          <h3 data-count="98">0</h3>
+          <p>% Match Accuracy</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating cards visual -->
+    <div class="hero-visual reveal-right">
+      <div class="float-card fc-1">
+        <div class="fc-head">
+          <div class="fc-icon i1"><i class="fas fa-mobile-screen"></i></div>
+          <div>
+            <div class="fc-title">iPhone 14 Pro</div>
+            <div class="fc-sub">Reported 2 hours ago</div>
+          </div>
+        </div>
+        <span class="fc-tag lost">● Lost</span>
+      </div>
+      <div class="float-card fc-2">
+        <div class="fc-head">
+          <div class="fc-icon i2"><i class="fas fa-wallet"></i></div>
+          <div>
+            <div class="fc-title">Brown Leather Wallet</div>
+            <div class="fc-sub">Found near Library</div>
+          </div>
+        </div>
+        <span class="fc-tag found">● Found</span>
+      </div>
+      <div class="float-card fc-3">
+        <div class="fc-head">
+          <div class="fc-icon i3"><i class="fas fa-id-card"></i></div>
+          <div>
+            <div class="fc-title">College ID Card</div>
+            <div class="fc-sub">Match found · 94%</div>
+          </div>
+        </div>
+        <span class="fc-tag match">● Matched</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-eyebrow reveal">Why FindIt</div>
+      <h2 class="reveal">Everything you need to recover lost items</h2>
+      <p class="reveal">Built on the objectives from our project synopsis — from reporting and image uploads to smart matching and claim verification.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon"><i class="fas fa-circle-exclamation"></i></div>
+        <h3>Report Lost Items</h3>
+        <p>Submit detailed reports with name, category, description, date, location and photos in seconds.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4)"><i class="fas fa-hand-holding-heart"></i></div>
+        <h3>Register Found Items</h3>
+        <p>Found something? Log it instantly so the rightful owner can be notified and reunited.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:linear-gradient(135deg,#f43f5e,#f59e0b)"><i class="fas fa-magnifying-glass-chart"></i></div>
+        <h3>Smart Search & Filter</h3>
+        <p>Search by category, keyword, location or date and surface potential matches automatically.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:linear-gradient(135deg,#8b5cf6,#6366f1)"><i class="fas fa-shield-halved"></i></div>
+        <h3>Secure Claim Verification</h3>
+        <p>Ownership is verified through proof before any item is handed over — no false claims.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:linear-gradient(135deg,#0ea5e9,#6366f1)"><i class="fas fa-bell"></i></div>
+        <h3>Instant Notifications</h3>
+        <p>Get alerted whenever a new item matches your lost report or a claim updates.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:linear-gradient(135deg,#14b8a6,#10b981)"><i class="fas fa-gauge-high"></i></div>
+        <h3>Admin Dashboard</h3>
+        <p>Full control over users, reports, claims and recovered items with a powerful admin panel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="steps" id="how">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-eyebrow reveal">Process</div>
+      <h2 class="reveal">How FindIt works</h2>
+      <p class="reveal">Four simple steps from reporting to recovery — mapped directly to our project methodology.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <h3>Report</h3>
+        <p>Log your lost or found item with description, category, date, location and a photo.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <h3>Search</h3>
+        <p>Our system filters and matches reports by keywords, category and location.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <h3>Claim</h3>
+        <p>Submit a claim with proof of ownership when a match is identified.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">4</div>
+        <h3>Recover</h3>
+        <p>Admin verifies and hands over the item. Both parties get notified.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="experience-section">
+  <div class="experience-shell">
+    <div class="sec-head reveal">
+      <div class="sec-eyebrow">Campus-first workflow</div>
+      <h2>Built for quick triage, secure proof, and clean recovery</h2>
+      <p>From the moment an item is reported to the moment it is returned, the platform keeps the process organized, transparent, and efficient.</p>
+    </div>
+    <div class="focus-strip">
+      <div class="focus-card reveal">
+        <div class="focus-icon"><i class="fas fa-location-dot"></i></div>
+        <h3>Neighborhood visibility</h3>
+        <p>Track reports by Bengaluru area, campus zones, and the last known place an item was seen.</p>
+      </div>
+      <div class="focus-card reveal">
+        <div class="focus-icon" style="background:linear-gradient(135deg,#f43f5e,#f59e0b)"><i class="fas fa-check-double"></i></div>
+        <h3>Faster verification</h3>
+        <p>Claims are organized, validated with proof, and approved or rejected with full chain-of-trust tracking.</p>
+      </div>
+      <div class="focus-card reveal">
+        <div class="focus-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4)"><i class="fas fa-file-signature"></i></div>
+        <h3>Digital handoff</h3>
+        <p>Returns are completed with receipts, signed confirmations, and a clean audit trail for the admin team.</p>
+      </div>
+    </div>
+
+    <div class="showcase-band">
+      <div class="showcase-panel reveal">
+        <h3>Built for real campus operations</h3>
+        <p>Perfect for admin teams, staff desks, and students who need a reliable system to reduce lost-item stress without manual chaos.</p>
+        <div class="mini-metrics">
+          <div class="mini-metric">
+            <strong>94%</strong>
+            <span>match confidence</span>
+          </div>
+          <div class="mini-metric">
+            <strong>24/7</strong>
+            <span>item visibility</span>
+          </div>
+          <div class="mini-metric">
+            <strong>1.2k+</strong>
+            <span>items resolved</span>
+          </div>
+        </div>
+      </div>
+      <div class="signal-card reveal">
+        <h4>Why it works</h4>
+        <ul class="signal-list">
+          <li><i class="fas fa-circle-check"></i> Smart matching engine</li>
+          <li><i class="fas fa-circle-check"></i> Secure claim approval</li>
+          <li><i class="fas fa-circle-check"></i> Admin audit controls</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIVE ITEMS ============ -->
+<section class="items-section" id="items">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-eyebrow reveal">Live Feed</div>
+      <h2 class="reveal">Recently reported items</h2>
+      <p class="reveal">Browse the latest lost and found reports on campus. Use filters to narrow down results.</p>
+    </div>
+
+    <div class="filter-bar reveal">
+      <div class="search-wrap">
+        <i class="fas fa-magnifying-glass"></i>
+        <form action="{{ url_for('items') }}" method="get" style="display:flex;align-items:center;gap:10px;flex:1"><i class="fas fa-magnifying-glass"></i><input type="text" name="q" placeholder="Search items by name, location or keyword..." style="width:100%"></form>
+      </div>
+      <div class="filter-btns" id="filterBtns">
+        <a class="chip active" href="{{ url_for('index') }}">All</a>
+        <a class="chip" href="{{ url_for('items', status='Lost') }}">Lost</a>
+        <a class="chip" href="{{ url_for('items', status='Found') }}">Found</a>
+        <a class="chip" href="{{ url_for('items', category='Electronics') }}">Electronics</a>
+        <a class="chip" href="{{ url_for('items', category='Documents') }}">Documents</a>
+      </div>
+    </div>
+
+    <div class="items-grid" id="itemsGrid">
+      {% for item in items %}
+      <a class="item-card reveal" href="{{ url_for('item_detail', item_id=item[0]) }}">
+        <div class="item-img">
+          <i class="fas {{ item[9] or 'fa-box' }}"></i>
+          <span class="item-badge {{ item[8]|lower }}">{{ item[8] }}</span>
+        </div>
+        <div class="item-body">
+          <h4>{{ item[2] }}</h4>
+          <div class="item-meta"><i class="fas fa-calendar"></i> {{ item[6] }}</div>
+          <div class="item-footer">
+            <div class="item-loc"><i class="fas fa-location-dot"></i> {{ item[5] }}</div>
+            <div class="item-cta">View →</div>
+          </div>
+        </div>
+      </a>
+      {% else %}
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#64748b">
+        <i class="fas fa-search" style="font-size:3rem;margin-bottom:16px;opacity:.4"></i>
+        <p>No reports yet. Be the first to report an item.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section>
+  <div class="container">
+    <div class="cta-banner reveal-scale">
+      <h2>Lost something on campus today?</h2>
+      <p>Don't wait — report it now. Over 1,200 items have already been reunited with their owners through FindIt.</p>
+      <a class="btn" href="{{ url_for('report') }}">
+        <i class="fas fa-circle-plus"></i> Report an Item Now
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer id="contact">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="#" class="logo">
+        <div class="logo-icon"><i class="fas fa-magnifying-glass-location"></i></div>
+        <div class="logo-text">Find<span>It</span></div>
+      </a>
+      <p>Digital Lost & Found Management Platform — a project by Syed Sawood Ahmed & Azaan Ali Baig, Department of Computer Applications, SSMRV College.</p>
+      <div class="socials">
+        <a href="#"><i class="fab fa-github"></i></a>
+        <a href="#"><i class="fab fa-linkedin"></i></a>
+        <a href="#"><i class="fab fa-instagram"></i></a>
+        <a href="#"><i class="fas fa-envelope"></i></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#items">Browse Items</a></li>
+        <li><a href="{{ url_for('report') }}">Report Lost</a></li>
+        <li><a href="{{ url_for('report') }}">Report Found</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Account</h4>
+      <ul>
+        <li><a href="{{ url_for('login') }}">Login</a></li>
+        <li><a href="{{ url_for('register') }}">Register</a></li>
+        <li><a href="{{ url_for('dashboard') }}">My Reports</a></li>
+        <li><a href="{{ url_for('dashboard') }}">My Claims</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>College</h4>
+      <ul>
+        <li><a href="#">SSMRV College</a></li>
+        <li><a href="#">Jayanagar 4th T Block</a></li>
+        <li><a href="#">Bengaluru - 560041</a></li>
+        <li><a href="#">Admin Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div>© 2026 FindIt · SSMRV College. All rights reserved.</div>
+    <div>Built with Python · Flask · SQLite</div>
+  </div>
+</footer>
+
+<script>
+/* ============ SCROLL PROGRESS ============ */
+const scrollProgress = document.getElementById('scrollProgress');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  scrollProgress.style.width = pct + '%';
+});
+
+/* ============ NAVBAR SCROLL ============ */
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 40);
+});
+
+/* ============ MOBILE MENU ============ */
+const hamburger = document.getElementById('hamburger');
+const navLinks = document.getElementById('navLinks');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  navLinks.classList.toggle('open');
+});
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    hamburger.classList.remove('active');
+    navLinks.classList.remove('open');
+  });
+});
+
+/* ============ ACTIVE NAV ON SCROLL ============ */
+const sections = document.querySelectorAll('section[id]');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(sec => {
+    const top = sec.offsetTop - 120;
+    if (scrollY >= top) current = sec.id;
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+
+/* ============ SCROLL REVEAL ============ */
+const revealEls = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      io.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+revealEls.forEach(el => io.observe(el));
+
+/* ============ COUNTER ANIMATION ============ */
+const counters = document.querySelectorAll('[data-count]');
+const counterIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const el = e.target;
+      const target = +el.dataset.count;
+      let cur = 0;
+      const step = target / 60;
+      const tick = () => {
+        cur += step;
+        if (cur < target) {
+          el.textContent = Math.floor(cur).toLocaleString();
+          requestAnimationFrame(tick);
+        } else {
+          el.textContent = target.toLocaleString() + (target === 98 ? '%' : '+');
+        }
+      };
+      tick();
+      counterIO.unobserve(el);
+    }
+  });
+}, { threshold: 0.5 });
+counters.forEach(c => counterIO.observe(c));
+
+/* ============ BACKEND ITEMS ============ */
+/* Item search is handled by Flask at /items. */
+/* ============ SMOOTH SCROLL HELPER ============ */
+function scrollToId(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ============ PARALLAX ON HERO FLOAT CARDS ============ */
+document.addEventListener('mousemove', (e) => {
+  const cards = document.querySelectorAll('.float-card');
+  const x = (e.clientX / window.innerWidth - 0.5) * 20;
+  const y = (e.clientY / window.innerHeight - 0.5) * 20;
+  cards.forEach((c, i) => {
+    const depth = (i + 1) * 0.5;
+    c.style.transform = `translate(${x*depth}px, ${y*depth}px) rotate(${x*0.05}deg)`;
+  });
+});
+
+const siteTranslations = {
+  en: {
+    home: 'Home',
+    features: 'Features',
+    howItWorks: 'How It Works',
+    contact: 'Contact',
+    browseItems: 'Browse Items',
+    dashboard: 'Dashboard',
+    login: 'Login'
+  },
+  kn: {
+    home: 'ಹೋಮ್',
+    features: 'ವೈಶಿಷ್ಟ್ಯಗಳು',
+    howItWorks: 'ಇದೀಗ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ',
+    contact: 'ಸಂಪರ್ಕ',
+    browseItems: 'ವಸ್ತುಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ',
+    dashboard: 'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+    login: 'ಲಾಗಿನ್'
+  },
+  hi: {
+    home: 'होम',
+    features: 'विशेषताएँ',
+    howItWorks: 'यह कैसे काम करता है',
+    contact: 'संपर्क',
+    browseItems: 'आइटम ब्राउज़ करें',
+    dashboard: 'डैशबोर्ड',
+    login: 'लॉगिन'
+  }
+};
+
+function applySiteLanguage(lang) {
+  const translations = siteTranslations[lang] || siteTranslations.en;
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (translations[key]) {
+      el.textContent = translations[key];
+    }
+  });
+
+  const siteLanguageSelect = document.getElementById('siteLanguage');
+  if (siteLanguageSelect) siteLanguageSelect.value = lang;
+
+  localStorage.setItem('findit-site-language', lang);
+  localStorage.setItem('findit-chat-language', lang);
+
+  if (typeof translateStaticText === 'function') {
+    translateStaticText(lang);
+  }
+
+  if (typeof applyChatLanguage === 'function') {
+    applyChatLanguage();
+  }
+}
+
+const staticPhraseTranslations = {
+  en: {
+    'Now live at SSMRV College, Jayanagar': 'Now live at SSMRV College, Jayanagar',
+    'Lost something?': 'Lost something?',
+    "We'll help you find it.": "We'll help you find it.",
+    'A centralized digital platform to report, search, match, and recover lost belongings across your campus — replacing notice boards and registers with one smart system.': 'A centralized digital platform to report, search, match, and recover lost belongings across your campus — replacing notice boards and registers with one smart system.',
+    'Browse Items': 'Browse Items',
+    'Report an Item': 'Report an Item',
+    'Bengaluru-ready': 'Bengaluru-ready',
+    'AI-assisted matching': 'AI-assisted matching',
+    'Secure claims': 'Secure claims',
+    'Items Recovered': 'Items Recovered',
+    'Active Reports': 'Active Reports',
+    '% Match Accuracy': '% Match Accuracy',
+    'Why FindIt': 'Why FindIt',
+    'Everything you need to recover lost items': 'Everything you need to recover lost items',
+    'Built on the objectives from our project synopsis — from reporting and image uploads to smart matching and claim verification.': 'Built on the objectives from our project synopsis — from reporting and image uploads to smart matching and claim verification.',
+    'Report Lost Items': 'Report Lost Items',
+    'Register Found Items': 'Register Found Items',
+    'Smart Search & Filter': 'Smart Search & Filter',
+    'Secure Claim Verification': 'Secure Claim Verification',
+    'Instant Notifications': 'Instant Notifications',
+    'Admin Dashboard': 'Admin Dashboard',
+    'Process': 'Process',
+    'How FindIt works': 'How FindIt works',
+    'Find your item in 3 simple steps': 'Find your item in 3 simple steps'
+  },
+  kn: {
+    'Now live at SSMRV College, Jayanagar': 'ಈಗ SSMRV ಕಾಲೇಜು, ಜಯನಗರದಲ್ಲಿ ಲೈವ್ ಇದೆ',
+    'Lost something?': 'ಏನಾದರೂ ಕಳೆದುಕೊಂಡಿದ್ದೀರಾ?',
+    "We'll help you find it.": 'ನಿಮ್ಮ ವಸ್ತುವನ್ನು ನಾವು ಹುಡುಕಲು ಸಹಾಯ ಮಾಡುತ್ತೇವೆ.',
+    'A centralized digital platform to report, search, match, and recover lost belongings across your campus — replacing notice boards and registers with one smart system.': 'ಕ್ಯಾಂಪಸ್‌ಯಲ್ಲಿ ಕಳೆದುಹೋದ ವಸ್ತುಗಳನ್ನು ವರದಿ ಮಾಡಲು, ಹುಡುಕಲು, ಹೊಂದಾಣಿಕೆ ಕಂಡುಹಿಡಿಯಲು ಮತ್ತು ಮರಳಿ ಪಡೆಯಲು ಒಂದು ಕೇಂದ್ರೀಕೃತ ಡಿಜಿಟಲ್ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ — ನೋಟಿಸ್‌ಬೋರ್ಡ್‌ಗಳು ಮತ್ತು ರಿಜಿಸ್ಟರ್‌ಗಳನ್ನು ಒಂದು ವೆಚ್ಚದ ವ್ಯವಸ್ಥೆಯೊಂದಿಗೆ ಬದಲಿಸುತ್ತದೆ.',
+    'Browse Items': 'ವಸ್ತುಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ',
+    'Report an Item': 'ವಸ್ತು ವರದಿ ಮಾಡಿ',
+    'Bengaluru-ready': 'ಬೆಂಗಳೂರು-ಸಿದ್ಧ',
+    'AI-assisted matching': 'AI ಸಹಾಯಕ ಹೊಂದಾಣಿಕೆ',
+    'Secure claims': 'ಸುರಕ್ಷಿತ ಕ್ಲೈಮ್ಗಳು',
+    'Items Recovered': 'ಮರಳಿ ಪಡೆದ ವಸ್ತುಗಳು',
+    'Active Reports': 'ಸಕ್ರಿಯ ವರದಿಗಳು',
+    '% Match Accuracy': '% ಹೊಂದಾಣಿಕೆ ನಿಖರತೆ',
+    'Why FindIt': 'FindIt ಯಾಕೆ?',
+    'Everything you need to recover lost items': 'ಕಳೆದುಹೋದ ವಸ್ತುಗಳನ್ನು ಮರಳಿ ಪಡೆಯಲು ಬೇಕಾದ ಎಲ್ಲವೂ',
+    'Built on the objectives from our project synopsis — from reporting and image uploads to smart matching and claim verification.': 'ನಮ್ಮ ಪ್ರಾಜೆಕ್ಟ್ ಸಿಂಪ್ಸಿಸ್‌ನ ಉದ್ದೇಶಗಳ ಆಧಾರದ ಮೇಲೆ ನಿರ್ಮಿತ — ವರದಿ ಮಾಡುವುದು, ಫೋಟೋ ಅಪ್‌ಲೋಡ್, ಸ್ಮಾರ್ಟ್ ಹೊಂದಾಣಿಕೆ ಮತ್ತು ಕ್ಲೈಮ್ ಪರಿಶೀಲನೆವರೆಗೂ.',
+    'Report Lost Items': 'ಕಳೆದುಹೋದ ವಸ್ತುಗಳನ್ನು ವರದಿ ಮಾಡಿ',
+    'Register Found Items': 'ಸಿಕ್ಕಿದ ವಸ್ತುಗಳನ್ನು ದಾಖಲು ಮಾಡಿ',
+    'Smart Search & Filter': 'ಸ್ಮಾರ್ಟ್ ಹುಡುಕಾಟ ಮತ್ತು ಫಿಲ್ಟರ್',
+    'Secure Claim Verification': 'ಸುರಕ್ಷಿತ ಕ್ಲೈಮ್ ಪರಿಶೀಲನೆ',
+    'Instant Notifications': 'ತಕ್ಷಣದ ಅಧಿಸೂಚನೆಗಳು',
+    'Admin Dashboard': 'ಅಡ್ಮಿನ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+    'Process': 'ಪ್ರಕ್ರಿಯೆ',
+    'How FindIt works': 'FindIt ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ',
+    'Find your item in 3 simple steps': '3 ಸುಲಭದ ಹಂತಗಳಲ್ಲಿ ನಿಮ್ಮ ವಸ್ತು ಕಂಡುಹಿಡಿಯಿರಿ'
+  },
+  hi: {
+    'Now live at SSMRV College, Jayanagar': 'अभी SSMRV कॉलेज, जयनगर में लाइव है',
+    'Lost something?': 'कुछ खो गया?',
+    "We'll help you find it.": 'हम इसे ढूंढने में आपकी मदद करेंगे।',
+    'A centralized digital platform to report, search, match, and recover lost belongings across your campus — replacing notice boards and registers with one smart system.': 'कैंपस में खोई वस्तुओं की रिपोर्ट, खोज, मिलान और पुनर्प्राप्ति के लिए एक केंद्रीकृत डिजिटल प्लेटफॉर्म — नोटिस बोर्ड और रजिस्टर को एक स्मार्ट सिस्टम से प्रतिस्थापित करता है।',
+    'Browse Items': 'आइटम ब्राउज़ करें',
+    'Report an Item': 'आइटम रिपोर्ट करें',
+    'Bengaluru-ready': 'बेंगलुरु-तैयार',
+    'AI-assisted matching': 'AI-सहायता मिलान',
+    'Secure claims': 'सुरक्षित दावा',
+    'Items Recovered': 'वस्तुएँ वापस मिलीं',
+    'Active Reports': 'सक्रिय रिपोर्ट्स',
+    '% Match Accuracy': '% मिलान सटीकता',
+    'Why FindIt': 'FindIt क्यों?',
+    'Everything you need to recover lost items': 'खोई हुई वस्तुओं को वापस पाने के लिए आवश्यक सब कुछ',
+    'Built on the objectives from our project synopsis — from reporting and image uploads to smart matching and claim verification.': 'हमारे प्रोजेक्ट सिंप्सिस के उद्देश्यों पर बनाया गया — रिपोर्टिंग और इमेज अपलोड से लेकर स्मार्ट मिलान और दावा सत्यापन तक।',
+    'Report Lost Items': 'खोई हुई वस्तुएँ रिपोर्ट करें',
+    'Register Found Items': 'मिली हुई वस्तुएँ रजिस्टर करें',
+    'Smart Search & Filter': 'स्मार्ट सर्च और फ़िल्टर',
+    'Secure Claim Verification': 'सुरक्षित दावा सत्यापन',
+    'Instant Notifications': 'तत्काल सूचनाएँ',
+    'Admin Dashboard': 'एडमिन डैशबोर्ड',
+    'Process': 'प्रक्रिया',
+    'How FindIt works': 'FindIt कैसे काम करता है',
+    'Find your item in 3 simple steps': '3 सरल कदमों में अपनी वस्तु खोजें'
+  }
+};
+
+function translateStaticText(lang) {
+  const translations = staticPhraseTranslations[lang] || staticPhraseTranslations.en;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (!node || !node.textContent) continue;
+    const parent = node.parentElement;
+    if (!parent || parent.closest('script, style, noscript, svg')) continue;
+    const original = node.textContent.trim();
+    if (translations[original]) {
+      node.textContent = node.textContent.replace(original, translations[original]);
+    }
+  }
+}
+const siteLanguageSelect = document.getElementById('siteLanguage');
+if (siteLanguageSelect) {
+  const storedLang = localStorage.getItem('findit-site-language') || 'en';
+  siteLanguageSelect.value = storedLang;
+  siteLanguageSelect.addEventListener('change', (event) => applySiteLanguage(event.target.value));
+}
+
+applySiteLanguage(localStorage.getItem('findit-site-language') || 'en');
+</script>
+
+{% include "chatbot.html" %}
+</body>
+</html>

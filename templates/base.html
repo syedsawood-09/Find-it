@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{% block title %}FindIt{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+  --bg:#f4f1ff;
+  --bg-strong:#ece7ff;
+  --surface:#ffffff;
+  --surface-alt:#f8f6ff;
+  --primary:#5b4cf0;
+  --primary-strong:#4337d3;
+  --secondary:#1ec8b3;
+  --secondary-deep:#0f8f82;
+  --accent:#ff9f43;
+  --accent-soft:#fff2e8;
+  --text:#1f1d2b;
+  --muted:#655d7b;
+  --line:#e9e4ff;
+  --success:#1cb883;
+  --warning:#ffb84d;
+  --danger:#ef5f6c;
+  --shadow:0 16px 60px rgba(82, 67, 160, 0.12);
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:'Plus Jakarta Sans',sans-serif;background:radial-gradient(circle at top left,#f2edff,#f8f9ff 35%,#eefaf8 100%);color:var(--text)}nav{padding:18px 6%;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);box-shadow:0 10px 32px rgba(47,35,87,.08);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}.logo{font-weight:800;font-size:1.5rem;text-decoration:none;color:var(--text);letter-spacing:-.03em}.logo span{background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;background-clip:text;color:transparent}.nav-links{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.nav-links a{margin-left:0}.nav-actions{display:flex;align-items:center;gap:12px}.lang-control{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(91,76,240,.18);background:linear-gradient(180deg,#ffffff,#f4f1ff);box-shadow:0 10px 24px rgba(91,76,240,.08);color:var(--text);margin-right:8px;transition:all .25s ease;transform-origin:center}.lang-control:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(91,76,240,.12)}.lang-control i{color:var(--primary);font-size:.9rem}.lang-control select{width:auto;min-width:86px;border:0;background:transparent;padding:0 2px 0 0;font:inherit;font-weight:700;color:var(--text);cursor:pointer;appearance:none;-webkit-appearance:none;-moz-appearance:none;outline:none;transition:all .2s ease}.lang-control select:focus{transform:scale(1.02)}.lang-control select option{color:var(--text);background:#fff}.nav a{text-decoration:none;color:var(--text);margin-left:18px;font-weight:600;transition:color .25s ease, transform .25s ease}.nav a:hover{color:var(--primary);transform:translateY(-1px)}@media (max-width:640px){nav{padding:14px 18px}.nav-actions{gap:8px}.lang-control{min-width:110px;padding:9px 10px}.lang-control select{min-width:70px;font-size:.8rem}}.btn{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:0;border-radius:14px;padding:12px 20px;text-decoration:none;display:inline-block;cursor:pointer;font-weight:700;box-shadow:0 14px 28px rgba(91,76,240,.22);transition:all .25s ease}.btn:hover{transform:translateY(-2px);box-shadow:0 18px 32px rgba(91,76,240,.29)}.btn.secondary{background:rgba(91,76,240,.08);color:var(--primary);box-shadow:none;border:1px solid rgba(91,76,240,.12)}.page{max-width:1100px;margin:45px auto;padding:0 20px 40px}.box{background:rgba(255,255,255,.92);padding:30px;border-radius:24px;box-shadow:var(--shadow);border:1px solid rgba(91,76,240,.08)}h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;margin:0 0 12px;letter-spacing:-.03em}label{display:block;font-weight:700;margin:14px 0 6px;color:var(--text)}input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff;transition:border-color .2s ease, box-shadow .2s ease}input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(91,76,240,.65);box-shadow:0 0 0 4px rgba(91,76,240,.10)}textarea{min-height:110px}.flash{background:linear-gradient(135deg,#ecfff8,#dffaf4);color:#0b5b4d;padding:12px 16px;border-radius:12px;margin-bottom:20px;border-left:4px solid var(--success);box-shadow:0 12px 22px rgba(28,184,131,.12)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.card{background:linear-gradient(180deg,#ffffff,#f9f7ff);padding:22px;border-radius:22px;box-shadow:0 18px 35px rgba(31,29,43,.07);border:1px solid rgba(91,76,240,.08)}.dashboard-page,.page-shell{display:flex;flex-direction:column;gap:24px}.hero-panel{display:flex;justify-content:space-between;align-items:center;gap:20px;background:linear-gradient(135deg,rgba(91,76,240,.08),rgba(30,200,179,.12));padding:28px 30px;border:1px solid rgba(91,76,240,.12);border-radius:28px;box-shadow:var(--shadow)}.hero-panel .hero-copy{flex:1}.hero-panel .hero-highlights{display:grid;grid-template-columns:repeat(3,minmax(82px,1fr));gap:12px;min-width:220px}.hero-mini{background:rgba(255,255,255,.75);padding:14px 16px;border:1px solid rgba(91,76,240,.08);border-radius:18px;display:flex;flex-direction:column;gap:4px;box-shadow:0 12px 24px rgba(31,29,43,.04)}.hero-mini strong{font-size:1.2rem;font-family:'Space Grotesk',sans-serif}.hero-mini span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.eyebrow{display:inline-block;margin:0 0 10px;padding:6px 10px;border-radius:999px;background:rgba(91,76,240,.08);color:var(--primary);font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px}.stat-card{background:linear-gradient(180deg,#ffffff,#faf9ff);padding:22px;border-radius:22px;border:1px solid rgba(91,76,240,.08);box-shadow:0 18px 35px rgba(31,29,43,.06);display:flex;flex-direction:column;gap:8px}.stat-card .label{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.stat-card .value{font-size:2rem;font-weight:800;font-family:'Space Grotesk',sans-serif}.panel{background:linear-gradient(180deg,#ffffff,#faf9ff);padding:26px;border-radius:24px;border:1px solid rgba(91,76,240,.08);box-shadow:0 18px 35px rgba(31,29,43,.06)}.panel-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}.chip{display:inline-flex;align-items:center;padding:7px 11px;border-radius:999px;background:rgba(91,76,240,.08);color:var(--primary);font-weight:700;font-size:.72rem}.chip-group{display:flex;gap:8px;flex-wrap:wrap}.chart-box{padding:18px 0 10px}.chart-bars{display:flex;align-items:flex-end;justify-content:space-between;height:170px;padding:0 12px}.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px}.bar{width:54%;min-height:18px;border-radius:14px 14px 0 0;background:linear-gradient(180deg,#7e71ff,#5b4cf0);box-shadow:0 10px 25px rgba(91,76,240,.20)}.bar.green{background:linear-gradient(180deg,#4ad8b0,#1cb883)}.bar.yellow{background:linear-gradient(180deg,#ffc365,#ff9f43)}.bar-label{font-size:.76rem;color:var(--muted);font-weight:600}.chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:22px}.legend-item{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:.85rem}.legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%}.table{overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#fff}.table table{width:100%;border-collapse:collapse}.table th,.table td{padding:14px 16px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table tr:last-child td{border-bottom:none}.status-pill{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;font-size:.72rem;font-weight:700}.status-lost{background:rgba(239,95,108,.10);color:var(--danger)}.status-found{background:rgba(28,184,131,.12);color:var(--success)}.status-recovered{background:rgba(255,159,67,.15);color:#c26d12}.status-verification{background:rgba(91,76,240,.08);color:var(--primary)}.status-claim submitted{background:rgba(91,76,240,.08);color:var(--primary)}.status-approved{background:rgba(28,184,131,.12);color:var(--success)}.status-rejected{background:rgba(239,95,108,.10);color:var(--danger)}.empty-state{padding:16px 12px;color:var(--muted);text-align:center}.muted-link{color:var(--primary);text-decoration:none;font-weight:700}.gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:12px}.gallery-card{display:block;background:#f9f7ff;border:1px solid rgba(91,76,240,.08);border-radius:22px;overflow:hidden;text-decoration:none;color:var(--text);box-shadow:0 14px 32px rgba(31,29,43,.06);transition:transform .2s ease, box-shadow .2s ease}.gallery-card:hover{transform:translateY(-4px);box-shadow:0 20px 35px rgba(31,29,43,.12)}.gallery-thumb{display:block;width:100%;height:170px;object-fit:cover;background:linear-gradient(135deg,#e7e2ff,#dff9f5)}.gallery-meta{padding:14px}.gallery-meta h3{margin:0 0 8px;font-size:1.05rem}.gallery-meta p{margin:0;color:var(--muted);font-size:.82rem}.gallery-tags{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}.mini-pill{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:.68rem;font-weight:700}.mini-pill.found{background:rgba(28,184,131,.12);color:var(--success)}.mini-pill.lost{background:rgba(239,95,108,.08);color:var(--danger)}.mini-pill.recovered{background:rgba(255,159,67,.12);color:#c26d12}.action-btn{border:0;border-radius:10px;padding:7px 12px;font:inherit;font-weight:700;cursor:pointer;transition:all .2s ease}.action-btn.approve{background:linear-gradient(135deg,var(--secondary),#27b2d8);color:#fff}.action-btn.reject{background:rgba(239,95,108,.10);color:var(--danger)}.action-btn:hover{transform:translateY(-1px)}@media (max-width:780px){nav{padding:14px 18px}nav .nav-links{display:none}.hero-panel{flex-direction:column;align-items:flex-start}.page{padding:0 14px 30px}.box{padding:20px}.table{overflow:auto}.table table{min-width:620px}}
+:root{--bg:#f3f7ff;--panel:#ffffff;--panel-soft:#f8faff;--primary:#6366f1;--secondary:#14b8a6;--accent:#f59e0b;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--success:#16a34a;--warning:#f59e0b;--danger:#ef4444;--shadow:0 20px 55px rgba(15,23,42,.12)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:'Plus Jakarta Sans',sans-serif;background:radial-gradient(circle at top left,#eef2ff,#f8fafc 45%,#eef9ff 100%);color:var(--text)}nav{padding:18px 6%;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);box-shadow:0 4px 25px rgba(15,23,42,.08);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}.logo{font-weight:800;font-size:1.4rem;text-decoration:none;color:var(--text)}.logo span{color:var(--primary)}nav a{text-decoration:none;color:var(--text);margin-left:18px;font-weight:600;transition:color .25s ease, transform .25s ease}nav a:hover{color:var(--primary);transform:translateY(-1px)}.btn{background:linear-gradient(135deg,var(--primary),#06b6d4);color:#fff;border:0;border-radius:12px;padding:12px 20px;text-decoration:none;display:inline-block;cursor:pointer;font-weight:700;box-shadow:0 12px 25px rgba(99,102,241,.25);transition:transform .25s ease, box-shadow .25s ease}.btn:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 18px 30px rgba(99,102,241,.3)}.page{max-width:1100px;margin:45px auto;padding:0 20px 40px}.box{background:#fff;padding:30px;border-radius:20px;box-shadow:var(--shadow)}h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0 0 12px}label{display:block;font-weight:700;margin:14px 0 6px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff;transition:border-color .2s ease, box-shadow .2s ease}input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(99,102,241,.6);box-shadow:0 0 0 3px rgba(99,102,241,.12)}textarea{min-height:110px}.flash{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#166534;padding:12px 14px;border-radius:12px;margin-bottom:20px;border-left:4px solid #22c55e;animation:slideDown .35s ease}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.card{background:#fff;padding:22px;border-radius:18px;box-shadow:0 12px 34px rgba(15,23,42,.08);border:1px solid rgba(226,232,240,.7);transition:transform .25s ease, box-shadow .25s ease}.card:hover,.stat-card:hover,.panel:hover{transform:translateY(-3px);box-shadow:0 20px 40px rgba(15,23,42,.12)}.badge{display:inline-block;padding:5px 10px;border-radius:20px;background:#e0e7ff;color:#4338ca;font-size:.8rem;font-weight:700}.search{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;margin:20px 0}.table{overflow:auto;background:rgba(255,255,255,.92);border-radius:18px;box-shadow:0 10px 28px rgba(15,23,42,.06)}table{width:100%;border-collapse:collapse}th,td{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f8fafc;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}tr:hover td{background:#f8fbff}.status-pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:.76rem;font-weight:700;border:1px solid transparent}.status-lost{background:#fee2e2;color:#991b1b;border-color:#fecaca}.status-found{background:#dcfce7;color:#166534;border-color:#bbf7d0}.status-recovered{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}.status-pending{background:#fef3c7;color:#92400e;border-color:#fde68a}.status-approved{background:#dcfce7;color:#166534;border-color:#bbf7d0}.status-rejected{background:#fee2e2;color:#991b1b;border-color:#fecaca}.dashboard-page,.admin-page{display:flex;flex-direction:column;gap:22px}.hero-panel{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:28px 30px;border-radius:24px;background:linear-gradient(135deg,#eef2ff,#f0fdfa);border:1px solid rgba(99,102,241,.12);box-shadow:var(--shadow);overflow:hidden;position:relative}.hero-panel::after{content:'';position:absolute;right:-40px;top:-20px;width:160px;height:160px;border-radius:50%;background:rgba(99,102,241,.08)}.hero-panel .eyebrow{display:inline-block;margin:0 0 8px;padding:6px 10px;border-radius:999px;background:rgba(99,102,241,.12);color:var(--primary);font-weight:700;font-size:.73rem;text-transform:uppercase;letter-spacing:.1em}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}.stat-card{background:linear-gradient(180deg,#fff,#f8fbff);padding:22px 20px;border:1px solid rgba(226,232,240,.8);border-radius:18px;box-shadow:0 10px 26px rgba(15,23,42,.06);transition:transform .25s ease, box-shadow .25s ease}.stat-card .label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.stat-card .value{font-size:2rem;font-weight:800;margin-top:10px;font-family:'Space Grotesk',sans-serif}.panel{background:#fff;border-radius:20px;padding:24px;border:1px solid rgba(226,232,240,.85);box-shadow:0 12px 28px rgba(15,23,42,.06);transition:transform .25s ease, box-shadow .25s ease}.panel-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.panel-header h2{margin:0}.muted-link{color:var(--primary);text-decoration:none;font-weight:700}.muted-link:hover{text-decoration:underline}.chip-group{display:flex;gap:8px;flex-wrap:wrap}.chip{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#f8fafc;color:var(--text);font-size:.8rem;font-weight:700;transition:all .2s ease}.chip:hover{border-color:rgba(99,102,241,.5);color:var(--primary);transform:translateY(-1px)}.action-btn{padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:700;transition:all .2s ease}.action-btn.approve{background:#dcfce7;color:#166534}.action-btn.reject{background:#fee2e2;color:#991b1b}.action-btn.secondary{background:#e0e7ff;color:#4338ca}.action-btn:hover{transform:translateY(-1px) scale(1.01)}.empty-state{padding:20px;text-align:center;color:var(--muted);font-weight:600}.link-row{display:flex;align-items:center;gap:8px}.link-row a{text-decoration:none;color:var(--primary);font-weight:700}.link-row a:hover{text-decoration:underline}.chart-box{margin-top:22px;padding:18px 16px 10px;border-radius:18px;background:linear-gradient(180deg,#f8faff,#eef2ff);border:1px solid rgba(99,102,241,.08)}.chart-bars{height:170px;display:flex;align-items:flex-end;gap:14px;padding-top:16px}.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px}.bar{width:100%;max-width:42px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#6366f1,#14b8a6);box-shadow:inset 0 -8px 18px rgba(255,255,255,.22);animation:rise .8s ease both}.bar.yellow{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.bar.green{background:linear-gradient(180deg,#34d399,#10b981)}.bar-label{font-size:.72rem;color:var(--muted);font-weight:700}.chart-legend{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:8px}.legend-item{display:inline-flex;align-items:center;gap:8px;font-size:.76rem;color:var(--muted);font-weight:700}.legend-dot{width:10px;height:10px;border-radius:50%}.sidebar-toggle{display:none}.sidebar{position:fixed;top:0;left:0;height:100vh;width:260px;background:linear-gradient(180deg,#111827,#1f2937);color:#fff;transform:translateX(-110%);transition:transform .3s ease;z-index:50;box-shadow:20px 0 50px rgba(15,23,42,.25);padding:20px 18px}.sidebar.open{transform:translateX(0)}.sidebar .close-btn{background:transparent;border:0;color:#fff;font-size:1.2rem;cursor:pointer;float:right}.sidebar nav{display:flex;flex-direction:column;align-items:flex-start;background:transparent;box-shadow:none;padding:42px 0 0;margin:0}.sidebar nav a{color:#e5e7eb;margin:10px 0;padding:10px 12px;border-radius:10px;width:100%}.sidebar nav a:hover{background:rgba(255,255,255,.08);color:#fff}.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:40}.overlay.visible{opacity:1;pointer-events:auto}.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-42%) scale(.96);opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;width:min(520px,90vw);background:#fff;border-radius:22px;box-shadow:0 32px 60px rgba(15,23,42,.18);padding:26px}.modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}.modal-header{display:flex;justify-content:space-between;align-items:center}.close-modal{border:0;background:#f1f5f9;border-radius:10px;padding:6px 10px;cursor:pointer}.chat-widget{position:fixed;right:20px;bottom:20px;z-index:35}.chat-toggle{width:58px;height:58px;border-radius:50%;border:0;background:linear-gradient(135deg,#6366f1,#14b8a6);color:#fff;box-shadow:0 18px 34px rgba(99,102,241,.28);cursor:pointer;font-size:1.4rem}.chat-box{position:absolute;right:0;bottom:72px;width:320px;background:#fff;border-radius:20px;box-shadow:0 20px 44px rgba(15,23,42,.18);padding:14px;display:none}.chat-box.open{display:block}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 12px;border-bottom:1px solid var(--line)}.chat-body{max-height:260px;overflow:auto;padding:10px 0;display:flex;flex-direction:column;gap:8px}.msg{max-width:82%;padding:10px 12px;border-radius:12px;font-size:.9rem;line-height:1.4}.msg.bot{background:#eef2ff;color:#312e81;border-top-left-radius:4px}.msg.user{margin-left:auto;background:#0ea5e9;color:#fff;border-top-right-radius:4px}.chat-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.quick-chip{border:1px solid var(--line);background:#f8fafc;border-radius:999px;padding:7px 10px;font-size:.74rem;cursor:pointer}.chat-input-row{display:flex;gap:8px;margin-top:10px}.chat-input-row input{flex:1;border-radius:10px;padding:10px 12px;border:1px solid var(--line)}.chat-input-row button{border:0;border-radius:10px;background:var(--primary);color:#fff;padding:10px 14px;cursor:pointer}.animate-on-scroll{opacity:0;transform:translateY(18px);transition:opacity .55s ease, transform .55s ease}.animate-on-scroll.visible{opacity:1;transform:none}.pulse{animation:pulse 2.5s ease infinite}@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}@keyframes pulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}@keyframes rise{from{height:0;opacity:0}to{opacity:1}}@media(max-width:700px){nav{flex-direction:column;gap:12px}.nav-links{display:none}.sidebar-toggle{display:inline-block;background:transparent;border:0;font-size:1.5rem;cursor:pointer}.hero-panel{flex-direction:column;align-items:flex-start}.search{grid-template-columns:1fr}.page{padding:0 14px 30px}.panel,.hero-panel{padding:20px}.chat-widget{right:14px;bottom:14px}.chat-box{width:290px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}</style></head><body>
+<div class="sidebar" id="sidebar">
+  <button class="close-btn" type="button" aria-label="Close menu" onclick="toggleSidebar()">✕</button>
+  <nav>
+    <a href="{{url_for('index')}}">Home</a>
+    <a href="{{url_for('items')}}">Browse Items</a>
+    {% if session.get('user_id') %}
+      <a href="{{url_for('report')}}">Report</a>
+      <a href="{{url_for('dashboard')}}">Dashboard</a>
+      <a href="{{url_for('notifications')}}">Notifications</a>
+      {% if session.get('role') in ['admin','staff','security'] %}<a href="{{url_for('admin_panel')}}">Staff panel</a>{% endif %}
+      <a href="{{url_for('logout')}}">Logout</a>
+    {% else %}
+      <a href="{{url_for('login')}}">Login</a>
+      <a href="{{url_for('register')}}">Register</a>
+    {% endif %}
+  </nav>
+</div>
+<div class="overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<nav>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="sidebar-toggle" type="button" aria-label="Open menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="{{url_for('index')}}">🔎 Find<span>It</span></a>
+  </div>
+  <div class="nav-links">
+    <label class="lang-control" aria-label="Choose language">
+      <i class="fa-solid fa-globe"></i>
+      <select id="siteLanguage" aria-label="Site language">
+        <option value="en">EN</option>
+        <option value="kn">ಕನ</option>
+        <option value="hi">हिं</option>
+      </select>
+    </label>
+    <a href="{{url_for('items')}}" data-i18n="browseItems">Browse Items</a>{% if session.get('user_id') %}<a href="{{url_for('report')}}" data-i18n="report">Report</a><a href="{{url_for('dashboard')}}" data-i18n="dashboard">Dashboard</a><a href="{{url_for('notifications')}}" data-i18n="notifications">Notifications</a>{% if session.get('role') in ['admin','staff','security'] %}<a href="{{url_for('admin_panel')}}" data-i18n="staffPanel">Staff panel</a>{% endif %}<a href="{{url_for('logout')}}" data-i18n="logout">Logout</a>{% else %}<a href="{{url_for('dashboard')}}" data-i18n="dashboard">Dashboard</a><a class="btn" href="{{url_for('register')}}" data-i18n="register">Register</a>{% endif %}
+  </div>
+</nav><div class="page">
+{% with messages=get_flashed_messages() %}{% if messages %}<div class="flash">{% for m in messages %}{{m}}{% endfor %}</div>{% endif %}{% endwith %}
+{% block content %}{% endblock %}</div>
+<div class="modal" id="quickModal">
+  <div class="modal-header">
+    <div>
+      <span class="eyebrow" style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(99,102,241,.12);color:var(--primary);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Quick help</span>
+      <h3 style="margin-top:12px;">Need a hand?</h3>
+    </div>
+    <button class="close-modal" type="button" onclick="closeModal()">Close</button>
+  </div>
+  <p>Tip: add a clear item photo, record the last known location, and include identifying details to speed up verification.</p>
+  <a class="btn" href="{{url_for('report')}}">Report an item</a>
+</div>
+{% include "chatbot.html" %}
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('visible');
+}
+
+function openModal() {
+  document.getElementById('quickModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('quickModal').classList.remove('open');
+}
+
+window.addEventListener('load', function () {
+  if (window.location.pathname === '/dashboard' || window.location.pathname === '/admin') {
+    openModal();
+  }
+});
+
+const baseSiteTranslations = {
+  en: {
+    browseItems: 'Browse Items',
+    report: 'Report',
+    dashboard: 'Dashboard',
+    notifications: 'Notifications',
+    noNotifications: 'No notifications.',
+    staffPanel: 'Staff panel',
+    logout: 'Logout',
+    register: 'Register',
+    login: 'Login',
+    welcomeBack: 'Welcome back',
+    signIn: 'Sign in',
+    continueWorkflow: 'Continue your lost-item workflow and review updates from the campus team.',
+    identifierLabel: 'Email, mobile, or student ID',
+    passwordLabel: 'Password',
+    loginButton: 'Login',
+    createAccount: 'Create account',
+    newUser: 'New user?',
+    identifierPlaceholder: 'e.g. name@college.edu or 98765 43210 or 2024CS101',
+    passwordPlaceholder: 'Enter your password',
+    createAccountTitle: 'Create account',
+    joinFindIt: 'Join FindIt',
+    registerSubtitle: 'Register to report lost items, claim found items, and track every update in one place.',
+    nameLabel: 'Name',
+    emailLabel: 'Email',
+    phoneLabel: 'Mobile Number',
+    phonePlaceholder: '+91 98765 43210',
+    studentIdLabel: 'Student ID',
+    studentIdPlaceholder: 'e.g. 2024CS101',
+    registerButton: 'Register',
+    yourActivity: 'Your activity',
+    welcomeUser: 'Welcome back,',
+    trackUpdates: 'Track your reports, claim progress, and notifications in one place.',
+    reportItem: '+ Report Item',
+    reportsLabel: 'Reports',
+    foundLabel: 'Found',
+    recoveredLabel: 'Recovered',
+    yourClaimsLabel: 'Your claims',
+    recentItemGallery: 'Recent item gallery',
+    reportsSoFar: 'reports so far',
+    overviewLabel: 'Overview',
+    liveActivity: 'Live activity',
+    myReports: 'My Reports',
+    browseAllItems: 'Browse all items',
+    itemLabel: 'Item',
+    categoryLabel: 'Category',
+    statusLabel: 'Status',
+    dateLabel: 'Date',
+    myClaimRequests: 'My Claim Requests',
+    submittedLabel: 'submitted',
+    noRecentItems: 'No recent items yet. As soon as someone reports a lost or found item, it will appear here with a photo.',
+    noReportsYet: 'No reports yet. Create your first lost or found entry.',
+    noClaimsYet: 'You haven\'t claimed an item yet. Browse found items to get started.',
+    claimsLabel: 'Claims',
+    pendingLabel: 'Pending',
+    approvedLabel: 'Approved'
+  },
+  kn: {
+    browseItems: 'ವಸ್ತುಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ',
+    report: 'ವರದಿ',
+    dashboard: 'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+    notifications: 'ಅಧಿಸೂಚನೆಗಳು',
+    noNotifications: 'ಯಾವುದೇ ಅಧಿಸೂಚನೆಗಳಿಲ್ಲ.',
+    staffPanel: 'ಸ್ಟಾಫ್ ಪೆನ್‌ಲ್',
+    logout: 'ಲಾಗ್‌ಔಟ್',
+    register: 'ನೋಂದಣಿ',
+    login: 'ಲಾಗಿನ್',
+    welcomeBack: 'ಮರಳಿ ಸ್ವಾಗತ',
+    signIn: 'ಸೈನ್ ಇನ್',
+    continueWorkflow: 'ಕ್ಯಾಂಪಸ್ ತಂಡದಿಂದ ಬರುವ ವಸ್ತು ಅಪ್ಡೇಟುಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ನಿಮ್ಮ ಕಳೆದುಹೋದ ವಸ್ತು ವರದಿ ಕೆಲಸ ಮುಂದುವರಿಸಿ.',
+    identifierLabel: 'ಇಮೇಲ್, ಮೊಬೈಲ್ ಅಥವಾ ವಿದ್ಯಾರ್ಥಿ ID',
+    passwordLabel: 'ಪಾಸ್‌ವರ್ಡ್',
+    loginButton: 'ಲಾಗಿನ್',
+    createAccount: 'ಖಾತೆ ರಚಿಸಿ',
+    newUser: 'ಹೊಸ ಬಳಕೆದಾರ?',
+    identifierPlaceholder: 'ಉದಾ: name@college.edu ಅಥವಾ 98765 43210 ಅಥವಾ 2024CS101',
+    passwordPlaceholder: 'ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ನಮೂದಿಸಿ',
+    createAccountTitle: 'ಖಾತೆ ರಚಿಸಿ',
+    joinFindIt: 'FindIt ಗೆ ಸೇರಿ',
+    registerSubtitle: 'ಕಳೆದುಹೋದ ವಸ್ತುಗಳಿಗೆ ವರದಿ ಮಾಡಿ, ಸಿಕ್ಕಿದ ವಸ್ತುಗಳನ್ನು ಕ್ಲೈಮ್ ಮಾಡಿ ಮತ್ತು ಎಲ್ಲಾ ಅಪ್ಡೇಟುಗಳನ್ನು ಒಂದೇ ಸ್ಥಳದಲ್ಲಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.',
+    nameLabel: 'ಹೆಸರು',
+    emailLabel: 'ಇಮೇಲ್',
+    phoneLabel: 'ಮೊಬೈಲ್ ನಂಬರ್',
+    phonePlaceholder: '+91 98765 43210',
+    studentIdLabel: 'ವಿದ್ಯಾರ್ಥಿ ID',
+    studentIdPlaceholder: 'ಉದಾ: 2024CS101',
+    registerButton: 'ನೋಂದಣಿ',
+    yourActivity: 'ನಿಮ್ಮ ಚಟುವಟಿಕೆ',
+    welcomeUser: 'ಮರಳಿ ಸ್ವಾಗತ,',
+    trackUpdates: 'ನಿಮ್ಮ ವರದಿಗಳು, ಕ್ಲೈಮ್ progresso ಮತ್ತು ಅಧಿಸೂಚನೆಗಳನ್ನು ಒಂದೇ ಸ್ಥಳದಲ್ಲಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.',
+    reportItem: '+ ವಸ್ತು ವರದಿ',
+    reportsLabel: 'ವರದಿಗಳು',
+    foundLabel: 'ಸಿಕ್ಕಿದವು',
+    recoveredLabel: 'ಮರಳಿ ಪಡೆದವು',
+    yourClaimsLabel: 'ನಿಮ್ಮ ಕ್ಲೈಮ್ಗಳು',
+    recentItemGallery: 'ಇತ್ತೀಚಿನ ವಸ್ತು ಗ್ಯಾಲರಿ',
+    reportsSoFar: 'ವರದಿಗಳು ಇದುವರೆಗೂ',
+    overviewLabel: 'ಅವಲೋಕನ',
+    liveActivity: 'ಲೈವ್ ಚಟುವಟಿಕೆ',
+    myReports: 'ನನ್ನ ವರದಿಗಳು',
+    browseAllItems: 'ಎಲ್ಲಾ ವಸ್ತುಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ',
+    itemLabel: 'ವಸ್ತು',
+    categoryLabel: 'ವರ್ಗ',
+    statusLabel: 'ಸ್ಥಿತಿ',
+    dateLabel: 'ದಿನಾಂಕ',
+    myClaimRequests: 'ನನ್ನ ಕ್ಲೈಮ್ ವಿನಂತಿಗಳು',
+    submittedLabel: 'ಸಲ್ಲಿಸಲಾಗಿದೆ',
+    noRecentItems: 'ಇನ್ನೂ ಇತ್ತೀಚಿನ ವಸ್ತುಗಳಿಲ್ಲ. ಕಳೆದುಹೋದ ಅಥವಾ ಸಿಕ್ಕಿದ ವಸ್ತುವು ವಾಪಸ್ಸು ಬಂದಾಗ ಇಲ್ಲಿಗೆ ಫೋಟೋসহ ತೋರಿಸುತ್ತದೆ.',
+    noReportsYet: 'ಇನ್ನೂ ಯಾವುದೇ ವರದಿಗಳಿಲ್ಲ. ನಿಮ್ಮ ಮೊದಲ ಕಳೆದುಹೋದ ಅಥವಾ ಸಿಕ್ಕಿದ ದಾಖಲೆ ರಚಿಸಿ.',
+    noClaimsYet: 'ನಿಮಗೆ ಇನ್ನೂ ಯಾವುದೇ ಕ್ಲೈಮ್ ಮಾಡಿಲ್ಲ. ಸಿಕ್ಕಿದ ವಸ್ತುಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ ಪ್ರಾರಂಭಿಸಿ.',
+    claimsLabel: 'ಕ್ಲೈಮ್ಗಳು',
+    pendingLabel: 'ಬಾಕಿ',
+    approvedLabel: 'ಅನುಮೋದಿಸಲಾಗಿದೆ'
+  },
+  hi: {
+    browseItems: 'आइटम ब्राउज़ करें',
+    report: 'रिपोर्ट',
+    dashboard: 'डैशबोर्ड',
+    notifications: 'सूचनाएँ',
+    noNotifications: 'कोई सूचना नहीं।',
+    staffPanel: 'स्टाफ पैनल',
+    logout: 'लॉग आउट',
+    register: 'रजिस्टर',
+    login: 'लॉगिन',
+    welcomeBack: 'फिर से स्वागत है',
+    signIn: 'साइन इन',
+    continueWorkflow: 'कैंपस टीम की अपडेट्स देखें और अपनी खोई हुई वस्तु की प्रक्रिया जारी रखें।',
+    identifierLabel: 'ईमेल, मोबाइल या स्टूडेंट ID',
+    passwordLabel: 'पासवर्ड',
+    loginButton: 'लॉगिन',
+    createAccount: 'खाता बनाएं',
+    newUser: 'नया उपयोगकर्ता?',
+    identifierPlaceholder: 'उदाहरण: name@college.edu या 98765 43210 या 2024CS101',
+    passwordPlaceholder: 'अपना पासवर्ड दर्ज करें',
+    createAccountTitle: 'खाता बनाएं',
+    joinFindIt: 'FindIt में शामिल हों',
+    registerSubtitle: 'खोई हुई वस्तुओं की रिपोर्ट करें, मिली हुई वस्तुओं पर दावा करें, और सभी अपडेट एक ही जगह ट्रैक करें।',
+    nameLabel: 'नाम',
+    emailLabel: 'ईमेल',
+    phoneLabel: 'मोबाइल नंबर',
+    phonePlaceholder: '+91 98765 43210',
+    studentIdLabel: 'स्टूडेंट ID',
+    studentIdPlaceholder: 'उदाहरण: 2024CS101',
+    registerButton: 'रजिस्टर',
+    yourActivity: 'आपकी गतिविधि',
+    welcomeUser: 'फिर से स्वागत है,',
+    trackUpdates: 'अपनी रिपोर्ट्स, दावा प्रगति और सूचनाओं को एक ही जगह ट्रैक करें।',
+    reportItem: '+ आइटम रिपोर्ट',
+    reportsLabel: 'रिपोर्ट्स',
+    foundLabel: 'मिला',
+    recoveredLabel: 'वापस मिला',
+    yourClaimsLabel: 'आपके दावे',
+    recentItemGallery: 'हाल की आइटम गैलरी',
+    reportsSoFar: 'रिपोर्ट्स अभी तक',
+    overviewLabel: 'अवलोकन',
+    liveActivity: 'लाइव गतिविधि',
+    myReports: 'मेरी रिपोर्ट्स',
+    browseAllItems: 'सभी आइटम देखें',
+    itemLabel: 'आइटम',
+    categoryLabel: 'कैटेगरी',
+    statusLabel: 'स्टेटस',
+    dateLabel: 'तारीख',
+    myClaimRequests: 'मेरे दावा अनुरोध',
+    submittedLabel: 'भेजा गया',
+    noRecentItems: 'अभी तक कोई हाल की वस्तु नहीं है। जैसे ही कोई खोई या मिली वस्तु रिपोर्ट करेगा, फोटो के साथ यह यहाँ दिखाई देगा।',
+    noReportsYet: 'अभी तक कोई रिपोर्ट नहीं है। पहली खोई या मिली वस्तु दर्ज करें।',
+    noClaimsYet: 'आपने अभी तक कोई दावा नहीं किया है। मिली हुई वस्तुओं को ब्राउज़ करके शुरू करें।',
+    claimsLabel: 'दावे',
+    pendingLabel: 'लंबित',
+    approvedLabel: 'स्वीकृत'
+  }
+};
+
+window.applySiteLanguage = function(lang) {
+  const translations = baseSiteTranslations[lang] || baseSiteTranslations.en;
+  document.documentElement.lang = lang;
+
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    if (translations[key]) {
+      el.textContent = translations[key];
+    }
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.dataset.i18nPlaceholder;
+    if (translations[key]) {
+      el.placeholder = translations[key];
+    }
+  });
+
+  const siteLanguageSelect = document.getElementById('siteLanguage');
+  if (siteLanguageSelect) siteLanguageSelect.value = lang;
+
+  localStorage.setItem('findit-site-language', lang);
+  localStorage.setItem('findit-chat-language', lang);
+
+  if (typeof window.translateStaticText === 'function') {
+    window.translateStaticText(lang);
+  }
+  if (typeof window.applyChatLanguage === 'function') {
+    window.applyChatLanguage();
+  }
+};
+
+const staticPhraseTranslations = {
+  en: {
+    'Welcome back': 'Welcome back',
+    'Sign in': 'Sign in',
+    'Email, mobile, or student ID': 'Email, mobile, or student ID',
+    'Password': 'Password',
+    'Login': 'Login',
+    'New user?': 'New user?',
+    'Create account': 'Create account'
+  },
+  kn: {
+    'Welcome back': 'ಮರಳಿ ಸ್ವಾಗತ',
+    'Sign in': 'ಸೈನ್ ಇನ್',
+    'Email, mobile, or student ID': 'ಇಮೇಲ್, ಮೊಬೈಲ್ ಅಥವಾ ವಿದ್ಯಾರ್ಥಿ ID',
+    'Password': 'ಪಾಸ್‌ವರ್ಡ್',
+    'Login': 'ಲಾಗಿನ್',
+    'New user?': 'ಹೊಸ ಬಳಕೆದಾರ?',
+    'Create account': 'ಖಾತೆ ರಚಿಸಿ'
+  },
+  hi: {
+    'Welcome back': 'फिर से स्वागत है',
+    'Sign in': 'साइन इन',
+    'Email, mobile, or student ID': 'ईमेल, मोबाइल या स्टूडेंट ID',
+    'Password': 'पासवर्ड',
+    'Login': 'लॉगिन',
+    'New user?': 'नया उपयोगकर्ता?',
+    'Create account': 'खाता बनाएं'
+  }
+};
+
+window.translateStaticText = function(lang) {
+  const translations = staticPhraseTranslations[lang] || staticPhraseTranslations.en;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let textNode;
+  while ((textNode = walker.nextNode())) {
+    if (!textNode || !textNode.textContent) continue;
+    const parent = textNode.parentElement;
+    if (!parent || parent.closest('script, style, noscript')) continue;
+    const original = textNode.textContent.trim();
+    const value = translations[original];
+    if (value) {
+      textNode.textContent = textNode.textContent.replace(original, value);
+    }
+  }
+};
+
+const initialLang = localStorage.getItem('findit-site-language') || 'en';
+const siteLanguageSelect = document.getElementById('siteLanguage');
+if (siteLanguageSelect) {
+  siteLanguageSelect.value = initialLang;
+  siteLanguageSelect.addEventListener('change', (event) => window.applySiteLanguage(event.target.value));
+}
+window.applySiteLanguage(initialLang);
+
+</script></body></html>

@@ -1,0 +1,192 @@
+{% extends "base.html" %}{% block title %}Admin | FindIt{% endblock %}{% block content %}
+<div class="admin-page">
+  <section class="hero-panel">
+    <div class="hero-copy">
+      <p class="eyebrow">Admin panel</p>
+      <h1>Command center</h1>
+      <p>Review claims, monitor Bengaluru campus incidents, and keep every lost item moving toward secure recovery.</p>
+    </div>
+    <div class="hero-highlights">
+      <div class="hero-mini">
+        <strong>{{ stats.total }}</strong>
+        <span>Reports</span>
+      </div>
+      <div class="hero-mini">
+        <strong>{{ claims|length }}</strong>
+        <span>Claims</span>
+      </div>
+      <div class="hero-mini">
+        <strong>{{ stats.found }}</strong>
+        <span>Matched</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Users</div>
+      <div class="value">{{ stats.users }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Reports</div>
+      <div class="value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Lost</div>
+      <div class="value">{{ stats.lost }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Found</div>
+      <div class="value">{{ stats.found }}</div>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Report Distribution</h2>
+      <span class="chip">Monthly view</span>
+    </div>
+    <div class="chart-box">
+      <div class="chart-bars">
+        <div class="bar-col">
+          <div class="bar" style="height:64%;"></div>
+          <div class="bar-label">Q1</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar green" style="height:82%;"></div>
+          <div class="bar-label">Q2</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar yellow" style="height:44%;"></div>
+          <div class="bar-label">Q3</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" style="height:92%;"></div>
+          <div class="bar-label">Q4</div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span> Reports</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Matched</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Verified</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Claims Queue</h2>
+      <span class="chip">{{ claims|length }} pending review</span>
+    </div>
+    <div class="table">
+      <table>
+        <tr>
+          <th>Item</th>
+          <th>Claimant</th>
+          <th>Proof</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+        {% for c in claims %}
+        <tr>
+          <td>{{ c[4] }}</td>
+          <td>{{ c[5] }}<br>{{ c[6] }}</td>
+          <td>{{ c[1] }}
+            {% if c[7] %}<br><a href="{{ url_for('claim_evidence', claim_id=c[0], kind='image') }}">Private photo</a>{% endif %}
+            {% if c[8] %}<br><a href="{{ url_for('claim_evidence', claim_id=c[0], kind='document') }}">Private document</a>{% endif %}
+          </td>
+          <td><span class="status-pill status-{{ c[2]|lower }}">{{ c[2] }}</span></td>
+          <td>
+            {% if c[2] == 'Pending' %}
+              <div class="chip-group">
+                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='approve') }}"><button class="action-btn approve" type="submit">Approve</button></form>
+                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='reject') }}"><button class="action-btn reject" type="submit">Reject</button></form>
+              </div>
+            {% elif c[2] == 'Approved' and c[10] == 'Verification' and session.get('role') in ['admin', 'security'] %}
+              <form method="post" action="{{ url_for('item_handover', item_id=c[9]) }}">
+                <label>Receiver full name <input name="receiver_name" value="{{ c[5] }}" required></label>
+                <label><input type="checkbox" name="receiver_confirmed" required style="width:auto"> Receiver confirmed receipt</label>
+                <button class="action-btn approve" type="submit">Record handover</button>
+              </form>
+            {% elif c[2] == 'Approved' and c[10] == 'Returned' %}
+              <a href="{{ url_for('handover_receipt', item_id=c[9]) }}">View handover receipt</a>
+            {% else %}
+              <span class="muted">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5"><div class="empty-state">No claims in the queue right now.</div></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Item status tracking</h2>
+      <span class="chip">Lost → Found → Claim → Verification → Returned → Closed</span>
+    </div>
+    <div class="table">
+      <table>
+        <tr><th>Item</th><th>Location</th><th>Status</th><th>Update</th><th>QR</th><th>Delete</th></tr>
+        {% for i in items %}
+        <tr>
+          <td>{{ i[1] }}</td><td>{{ i[2] }}</td><td>{{ i[3] }}</td>
+          <td>
+            <form method="post" action="{{ url_for('item_status', item_id=i[0]) }}" class="chip-group">
+              <select name="status" aria-label="New status for {{ i[1] }}">
+                {% if i[3] == 'Lost' %}<option>Found</option><option>Closed</option>
+                {% elif i[3] == 'Found' %}<option>Claim Submitted</option><option>Closed</option>
+                {% elif i[3] == 'Claim Submitted' %}<option>Verification</option><option>Found</option>
+                {% elif i[3] == 'Verification' %}<option>Found</option>
+                {% elif i[3] == 'Returned' %}<option>Closed</option>
+                {% elif i[3] == 'Recovered' %}<option>Closed</option>{% endif %}
+              </select>
+              <button class="action-btn approve" type="submit">Update</button>
+            </form>
+          </td>
+          <td>{% if i[3] in ['Found', 'Claim Submitted', 'Verification'] %}<a href="{{ url_for('item_qr', item_id=i[0]) }}">Download QR</a>{% else %}-{% endif %}</td>
+          <td>{% if session.get('role') == 'admin' %}<form method="post" action="{{ url_for('delete_item', item_id=i[0]) }}" onsubmit="return confirm('Delete this report?')"><button class="action-btn reject" type="submit">Delete</button></form>{% else %}-{% endif %}</td>
+        </tr>
+        {% else %}<tr><td colspan="6"><div class="empty-state">No item reports.</div></td></tr>{% endfor %}
+      </table>
+    </div>
+  </section>
+
+  {% if session.get('role') == 'admin' %}
+  <section class="panel">
+    <div class="panel-header"><h2>Role management</h2><span class="chip">User · Staff · Security · Admin</span></div>
+    <div class="table">
+      <table>
+        <tr><th>Name</th><th>Email</th><th>Current role</th><th>Change role</th></tr>
+        {% for u in users %}
+        <tr>
+          <td>{{ u[1] }}</td><td>{{ u[2] }}</td><td>{{ u[3] }}</td>
+          <td><form method="post" action="{{ url_for('update_user_role', user_id=u[0]) }}" class="chip-group">
+            <select name="role" aria-label="Role for {{ u[1] }}">
+              {% for role in ['user', 'staff', 'security', 'admin'] %}<option value="{{ role }}" {% if role == u[3] %}selected{% endif %}>{{ role|title }}</option>{% endfor %}
+            </select><button class="action-btn approve" type="submit">Save</button>
+          </form></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-header"><h2>Audit log</h2><span class="chip">Recent actions</span></div>
+    <div class="table">
+      <table>
+        <tr><th>Action</th><th>Record</th><th>By</th><th>Details</th><th>Time</th></tr>
+        {% for entry in audit_logs %}
+        <tr><td>{{ entry[1] }}</td><td>{{ entry[2] }} #{{ entry[3] or '-' }}</td><td>{{ entry[6] or 'System' }}</td><td>{{ entry[4] }}</td><td>{{ entry[5] }}</td></tr>
+        {% else %}<tr><td colspan="5"><div class="empty-state">No actions have been logged.</div></td></tr>{% endfor %}
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

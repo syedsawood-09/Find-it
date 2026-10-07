@@ -1,0 +1,18 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.FindItMobile" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/findit_blue</item>
+        <item name="colorPrimaryVariant">@color/findit_light_blue</item>
+        <item name="colorSecondary">@color/findit_light_blue</item>
+        <item name="android:statusBarColor">@color/findit_navy</item>
+        <item name="android:navigationBarColor">@color/findit_navy</item>
+        <item name="android:windowBackground">@color/findit_white</item>
+    </style>
+
+    <style name="Theme.FindItMobile.Splash" parent="Theme.FindItMobile">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:statusBarColor">@color/findit_navy</item>
+        <item name="android:navigationBarColor">@color/findit_navy</item>
+    </style>
+</resources>

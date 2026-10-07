@@ -1,0 +1,545 @@
+<style>
+.chat-widget{position:fixed;right:20px;bottom:20px;z-index:1002}
+.chat-toggle{width:58px;height:58px;border-radius:50%;border:0;background:linear-gradient(135deg,#6366f1,#14b8a6);color:#fff;box-shadow:0 18px 34px rgba(99,102,241,.28);cursor:pointer;font-size:1.4rem}
+.chat-box{position:absolute;right:0;bottom:72px;width:min(340px,calc(100vw - 32px));background:#fff;border-radius:20px;box-shadow:0 20px 44px rgba(15,23,42,.18);padding:14px;display:none;font-family:'Plus Jakarta Sans',sans-serif;color:#0f172a}
+.chat-box.open{display:block}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 12px;border-bottom:1px solid #e2e8f0}
+.chat-header-actions{display:flex;align-items:center;gap:6px}
+.chat-header-actions select,.chat-header button{width:auto;border:0;background:#f1f5f9;border-radius:10px;padding:6px 10px;cursor:pointer;font:inherit}
+.chat-header-actions select{max-width:120px}
+.chat-body{max-height:260px;overflow:auto;padding:10px 0;display:flex;flex-direction:column;gap:8px}
+.chat-box .msg{max-width:82%;padding:10px 12px;border-radius:12px;font-size:.9rem;line-height:1.4;text-decoration:none}
+.chat-box .msg.bot{background:#eef2ff;color:#312e81;border-top-left-radius:4px}
+.chat-box .msg.user{margin-left:auto;background:#0ea5e9;color:#fff;border-top-right-radius:4px}
+.chat-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chat-privacy-note{display:block;margin-top:10px;color:#64748b;font-size:.7rem;line-height:1.4}
+.quick-chip{border:1px solid #e2e8f0;background:#f8fafc;border-radius:999px;padding:7px 10px;font-size:.74rem;cursor:pointer}
+.chat-input-row{display:flex;gap:8px;margin-top:10px}
+.chat-input-row input{flex:1;min-width:0;border-radius:10px;padding:10px 12px;border:1px solid #e2e8f0;font:inherit}
+.chat-input-row button{border:0;border-radius:10px;background:#6366f1;color:#fff;padding:10px 14px;cursor:pointer}
+</style>
+<div class="chat-widget">
+  <div class="chat-box" id="chatBox">
+    <div class="chat-header">
+      <strong>FindIt Assistant</strong>
+      <div class="chat-header-actions">
+        <button type="button" onclick="toggleChat()" aria-label="Close chat">×</button>
+      </div>
+    </div>
+    <div class="chat-body" id="chatBody" aria-live="polite">
+      <div class="msg bot" id="chatWelcome">Hi! What would you like help with today? I can help report a lost item, find found items, start a claim, or locate the office.</div>
+    </div>
+    <div class="chat-actions">
+      <button class="quick-chip" type="button" data-msg="I lost my ID card yesterday." data-chat-label="lostId">Lost ID</button>
+      <button class="quick-chip" type="button" data-msg="How do I claim an item?" data-chat-label="claim">Claim item</button>
+      <button class="quick-chip" type="button" data-msg="Show found phones." data-chat-label="phones">Found phones</button>
+      <button class="quick-chip" type="button" data-msg="Where is the lost-and-found office?" data-chat-label="office">Office location</button>
+    </div>
+    <small class="chat-privacy-note" id="chatPrivacyNote">General AI questions may be sent to OpenAI. Private claim evidence is never sent.</small>
+    <div class="chat-input-row">
+      <input id="chatInput" type="text" placeholder="Ask about lost and found..." aria-label="Ask the FindIt Assistant" />
+      <button id="chatSendButton" type="button" onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
+  <button class="chat-toggle" type="button" aria-label="Open chat" onclick="toggleChat()">💬</button>
+</div>
+<script>
+const chatTranslations = {
+  en: {
+    welcome: "Hi! What would you like help with today? I can help report a lost item, find found items, start a claim, or locate the office.",
+    lostId: "Lost ID", claim: "Claim item", phones: "Found phones", office: "Office location",
+    placeholder: "Ask about lost and found...", send: "Send",
+    privacy: "General AI questions may be sent to OpenAI. Private claim evidence is never sent.",
+    where: "Where did you last have or see this item before you lost it?",
+    when: "When did you lose it? A date or approximate time is helpful.",
+    confirmation: "Please confirm your claim for {item}:\nItem details: {proof}\nLast had it: {location}\nWhen lost: {time}\nSubmit these details for staff review?",
+    yes: "Yes, submit claim", cancel: "No, cancel",
+    confirmPrompt: "Please choose “{yes}” or “{cancel}”.",
+    cancelled: "No claim was submitted. You can ask me to find another item or help with something else."
+  },
+  kn: {
+    welcome: "ನಮಸ್ಕಾರ! ಇಂದು ನಿಮಗೆ ಏನು ಸಹಾಯ ಬೇಕು? ಕಳೆದುಹೋದ ವಸ್ತು ವರದಿ, ಸಿಕ್ಕಿದ ವಸ್ತು ಹುಡುಕಾಟ, ಕ್ಲೇಮ್ ಅಥವಾ ಕಚೇರಿ ಸ್ಥಳದ ಬಗ್ಗೆ ಸಹಾಯ ಮಾಡುತ್ತೇನೆ.",
+    lostId: "ಕಳೆದುಹೋದ ID", claim: "ವಸ್ತು ಕ್ಲೇಮ್", phones: "ಸಿಕ್ಕಿದ ಫೋನ್‌ಗಳು", office: "ಕಚೇರಿ ಸ್ಥಳ",
+    placeholder: "ಕಳೆದುಹೋದ ಅಥವಾ ಸಿಕ್ಕಿದ ವಸ್ತು ಬಗ್ಗೆ ಕೇಳಿ...", send: "ಕಳುಹಿಸಿ",
+    privacy: "ಸಾಮಾನ್ಯ AI ಪ್ರಶ್ನೆಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ಖಾಸಗಿ ಕ್ಲೇಮ್ ಪುರಾವೆಗಳನ್ನು ಎಂದಿಗೂ ಕಳುಹಿಸುವುದಿಲ್ಲ.",
+    where: "ಈ ವಸ್ತು ಕಳೆದುಹೋಗುವ ಮೊದಲು ನೀವು ಅದನ್ನು ಕೊನೆಯಾಗಿ ಎಲ್ಲಿ ಹೊಂದಿದ್ದಿರಿ ಅಥವಾ ನೋಡಿದ್ದಿರಿ?",
+    when: "ಈ ವಸ್ತು ಯಾವಾಗ ಕಳೆದುಹೋಯಿತು? ದಿನಾಂಕ ಅಥವಾ ಅಂದಾಜು ಸಮಯ ತಿಳಿಸಿ.",
+    confirmation: "{item} ಕ್ಲೇಮ್ ಅನ್ನು ದೃಢೀಕರಿಸಿ:\nವಸ್ತುವಿನ ವಿವರ: {proof}\nಕೊನೆಯಾಗಿ ಇದ್ದ ಸ್ಥಳ: {location}\nಕಳೆದುಹೋದ ಸಮಯ: {time}\nಈ ವಿವರಗಳನ್ನು ಸಿಬ್ಬಂದಿ ಪರಿಶೀಲನೆಗೆ ಸಲ್ಲಿಸಬೇಕೇ?",
+    yes: "ಹೌದು, ಕ್ಲೇಮ್ ಸಲ್ಲಿಸಿ", cancel: "ಬೇಡ, ರದ್ದುಮಾಡಿ",
+    confirmPrompt: "“{yes}” ಅಥವಾ “{cancel}” ಆಯ್ಕೆಮಾಡಿ.",
+    cancelled: "ಯಾವುದೇ ಕ್ಲೇಮ್ ಸಲ್ಲಿಸಲಿಲ್ಲ. ಬೇರೆ ವಸ್ತು ಹುಡುಕಲು ಅಥವಾ ಇತರ ಸಹಾಯ ಕೇಳಬಹುದು."
+  },
+  hi: {
+    welcome: "नमस्ते! आज आपको किस बात में मदद चाहिए? मैं खोई वस्तु की रिपोर्ट, मिली वस्तु की खोज, दावा या कार्यालय का स्थान बताने में मदद कर सकता हूँ।",
+    lostId: "खोया ID", claim: "वस्तु पर दावा", phones: "मिले फोन", office: "कार्यालय का स्थान",
+    placeholder: "खोई या मिली वस्तु के बारे में पूछें...", send: "भेजें",
+    privacy: "सामान्य AI प्रश्न OpenAI को भेजे जा सकते हैं। निजी दावा प्रमाण कभी नहीं भेजे जाते।",
+    where: "खोने से पहले आपने इस वस्तु को आखिरी बार कहाँ रखा या देखा था?",
+    when: "यह वस्तु कब खोई थी? तारीख या अनुमानित समय बताएँ।",
+    confirmation: "{item} पर अपने दावे की पुष्टि करें:\nवस्तु का विवरण: {proof}\nआखिरी बार जहाँ थी: {location}\nखोने का समय: {time}\nक्या ये विवरण स्टाफ की समीक्षा के लिए जमा करें?",
+    yes: "हाँ, दावा जमा करें", cancel: "नहीं, रद्द करें",
+    confirmPrompt: "“{yes}” या “{cancel}” चुनें।",
+    cancelled: "कोई दावा जमा नहीं किया गया। आप दूसरी वस्तु खोजने या कुछ और पूछने के लिए कह सकते हैं।"
+  }
+};
+
+const siteTranslations = {
+  kn: {
+    "Home": "ಮುಖಪುಟ", "Features": "ವೈಶಿಷ್ಟ್ಯಗಳು", "How It Works": "ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ",
+    "Contact": "ಸಂಪರ್ಕ", "Now live at SSMRV College, Jayanagar": "SSMRV ಕಾಲೇಜು, ಜಯನಗರದಲ್ಲಿ ಈಗ ಲಭ್ಯ",
+    "Lost something?": "ಏನನ್ನಾದರೂ ಕಳೆದುಕೊಂಡಿದ್ದೀರಾ?",
+    "We'll help you find it.": "ಅದನ್ನು ಹುಡುಕಲು ನಾವು ಸಹಾಯ ಮಾಡುತ್ತೇವೆ.",
+    "A centralized digital platform to report, search, match, and recover lost belongings across your campus — replacing notice boards and registers with one smart system.": "ಕ್ಯಾಂಪಸ್‌ನಲ್ಲಿ ಕಳೆದುಹೋದ ವಸ್ತುಗಳನ್ನು ವರದಿ ಮಾಡಲು, ಹುಡುಕಲು ಮತ್ತು ಮರಳಿ ಪಡೆಯಲು ಒಂದೇ ಸ್ಮಾರ್ಟ್ ಡಿಜಿಟಲ್ ವೇದಿಕೆ.",
+    "Browse Items": "ವಸ್ತುಗಳನ್ನು ವೀಕ್ಷಿಸಿ", "Report an Item": "ವಸ್ತುವನ್ನು ವರದಿ ಮಾಡಿ",
+    "Report an Item Now": "ಈಗ ವಸ್ತುವನ್ನು ವರದಿ ಮಾಡಿ", "Items Recovered": "ಮರಳಿ ಸಿಕ್ಕಿದ ವಸ್ತುಗಳು",
+    "Active Reports": "ಸಕ್ರಿಯ ವರದಿಗಳು",
+    "% Match Accuracy": "% ಹೊಂದಾಣಿಕೆ ನಿಖರತೆ", "Reported 2 hours ago": "2 ಗಂಟೆಗಳ ಹಿಂದೆ ವರದಿ ಮಾಡಲಾಗಿದೆ",
+    "Found near Library": "ಗ್ರಂಥಾಲಯದ ಬಳಿ ಸಿಕ್ಕಿದೆ", "Match found · 94%": "ಹೊಂದಾಣಿಕೆ ಕಂಡುಬಂದಿದೆ · 94%",
+    "Matched": "ಹೊಂದಾಣಿಕೆಯಾಗಿದೆ", "Why FindIt": "FindIt ಏಕೆ",
+    "Everything you need to recover lost items": "ಕಳೆದುಹೋದ ವಸ್ತುಗಳನ್ನು ಮರಳಿ ಪಡೆಯಲು ಬೇಕಾದ ಎಲ್ಲವೂ",
+    "Report Lost Items": "ಕಳೆದುಹೋದ ವಸ್ತುಗಳನ್ನು ವರದಿ ಮಾಡಿ",
+    "Register Found Items": "ಸಿಕ್ಕಿದ ವಸ್ತುಗಳನ್ನು ನೋಂದಾಯಿಸಿ",
+    "Smart Search & Filter": "ಸ್ಮಾರ್ಟ್ ಹುಡುಕಾಟ ಮತ್ತು ಫಿಲ್ಟರ್",
+    "Secure Claim Verification": "ಸುರಕ್ಷಿತ ಕ್ಲೇಮ್ ಪರಿಶೀಲನೆ",
+    "Instant Notifications": "ತಕ್ಷಣದ ಅಧಿಸೂಚನೆಗಳು",
+    "Admin Dashboard": "ನಿರ್ವಾಹಕ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", "Process": "ಪ್ರಕ್ರಿಯೆ",
+    "Built on the objectives from our project synopsis — from reporting and image uploads to smart matching and claim verification.": "ವರದಿ, ಚಿತ್ರ ಅಪ್‌ಲೋಡ್, ಸ್ಮಾರ್ಟ್ ಹೊಂದಾಣಿಕೆ ಮತ್ತು ಕ್ಲೇಮ್ ಪರಿಶೀಲನೆಗೆ ಸಹಾಯ ಮಾಡುವ ವೇದಿಕೆ.",
+    "Submit detailed reports with name, category, description, date, location and photos in seconds.": "ಹೆಸರು, ವರ್ಗ, ವಿವರಣೆ, ದಿನಾಂಕ, ಸ್ಥಳ ಮತ್ತು ಫೋಟೋಗಳೊಂದಿಗೆ ವಿವರವಾದ ವರದಿ ಸಲ್ಲಿಸಿ.",
+    "Found something? Log it instantly so the rightful owner can be notified and reunited.": "ಏನಾದರೂ ಸಿಕ್ಕಿದೆಯೇ? ಸರಿಯಾದ ಮಾಲೀಕರಿಗೆ ತಿಳಿಸಲು ತಕ್ಷಣ ವರದಿ ಮಾಡಿ.",
+    "Search by category, keyword, location or date and surface potential matches automatically.": "ವರ್ಗ, ಕೀವರ್ಡ್, ಸ್ಥಳ ಅಥವಾ ದಿನಾಂಕದಿಂದ ಹುಡುಕಿ; ಸಾಧ್ಯ ಹೊಂದಾಣಿಕೆಗಳನ್ನು ನೋಡಿ.",
+    "Ownership is verified through proof before any item is handed over — no false claims.": "ವಸ್ತು ಹಸ್ತಾಂತರಿಸುವ ಮೊದಲು ಪುರಾವೆಯಿಂದ ಮಾಲೀಕತ್ವ ಪರಿಶೀಲಿಸಲಾಗುತ್ತದೆ.",
+    "Get alerted whenever a new item matches your lost report or a claim updates.": "ನಿಮ್ಮ ವರದಿಗೆ ಹೊಂದಾಣಿಕೆ ಅಥವಾ ಕ್ಲೇಮ್ ನವೀಕರಣ ಬಂದಾಗ ಸೂಚನೆ ಪಡೆಯಿರಿ.",
+    "Full control over users, reports, claims and recovered items with a powerful admin panel.": "ಬಳಕೆದಾರರು, ವರದಿಗಳು, ಕ್ಲೇಮ್‌ಗಳು ಮತ್ತು ಮರಳಿ ಸಿಕ್ಕಿದ ವಸ್ತುಗಳನ್ನು ನಿರ್ವಹಿಸಿ.",
+    "Four simple steps from reporting to recovery — mapped directly to our project methodology.": "ವರದಿಯಿಂದ ಮರಳಿ ಪಡೆಯುವವರೆಗೆ ನಾಲ್ಕು ಸರಳ ಹಂತಗಳು.",
+    "Log your lost or found item with description, category, date, location and a photo.": "ವಿವರಣೆ, ವರ್ಗ, ದಿನಾಂಕ, ಸ್ಥಳ ಮತ್ತು ಫೋಟೋದೊಂದಿಗೆ ವಸ್ತುವನ್ನು ವರದಿ ಮಾಡಿ.",
+    "Our system filters and matches reports by keywords, category and location.": "ಕೀವರ್ಡ್, ವರ್ಗ ಮತ್ತು ಸ್ಥಳದ ಮೂಲಕ ವರದಿಗಳನ್ನು ಹೊಂದಿಸಲಾಗುತ್ತದೆ.",
+    "Submit a claim with proof of ownership when a match is identified.": "ಹೊಂದಾಣಿಕೆ ಕಂಡಾಗ ಮಾಲೀಕತ್ವದ ಪುರಾವೆಯೊಂದಿಗೆ ಕ್ಲೇಮ್ ಸಲ್ಲಿಸಿ.",
+    "Admin verifies and hands over the item. Both parties get notified.": "ನಿರ್ವಾಹಕರು ಪರಿಶೀಲಿಸಿ ವಸ್ತು ಹಸ್ತಾಂತರಿಸುತ್ತಾರೆ; ಎರಡೂ ಪಕ್ಷಗಳಿಗೆ ಸೂಚನೆ ಸಿಗುತ್ತದೆ.",
+    "Browse the latest lost and found reports on campus. Use filters to narrow down results.": "ಕ್ಯಾಂಪಸ್‌ನ ಇತ್ತೀಚಿನ ಕಳೆದುಹೋದ ಮತ್ತು ಸಿಕ್ಕಿದ ವರದಿಗಳನ್ನು ವೀಕ್ಷಿಸಿ.",
+    "No reports yet. Be the first to report an item.": "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಮೊದಲ ವರದಿಯನ್ನು ಸಲ್ಲಿಸಿ.",
+    "Don't wait — report it now. Over 1,200 items have already been reunited with their owners through FindIt.": "ತಡಮಾಡಬೇಡಿ — ಈಗಲೇ ವರದಿ ಮಾಡಿ. FindIt ಮೂಲಕ ಅನೇಕ ವಸ್ತುಗಳು ಮಾಲೀಕರಿಗೆ ಮರಳಿವೆ.",
+    "All rights reserved.": "ಎಲ್ಲ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ.",
+    "How FindIt works": "FindIt ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ", "Report": "ವರದಿ",
+    "Search": "ಹುಡುಕಿ", "Claim": "ಕ್ಲೇಮ್", "Recover": "ಮರಳಿ ಪಡೆಯಿರಿ",
+    "Recently reported items": "ಇತ್ತೀಚೆಗೆ ವರದಿಯಾದ ವಸ್ತುಗಳು", "All": "ಎಲ್ಲಾ",
+    "Electronics": "ಎಲೆಕ್ಟ್ರಾನಿಕ್ಸ್", "Documents": "ದಾಖಲೆಗಳು", "View →": "ವೀಕ್ಷಿಸಿ →",
+    "Lost something on campus today?": "ಇಂದು ಕ್ಯಾಂಪಸ್‌ನಲ್ಲಿ ಏನನ್ನಾದರೂ ಕಳೆದುಕೊಂಡಿದ್ದೀರಾ?",
+    "Platform": "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್", "Account": "ಖಾತೆ", "College": "ಕಾಲೇಜು",
+    "My Claims": "ನನ್ನ ಕ್ಲೇಮ್‌ಗಳು", "Admin Contact": "ನಿರ್ವಾಹಕರ ಸಂಪರ್ಕ",
+    "Digital Handover Record": "ಡಿಜಿಟಲ್ ಹಸ್ತಾಂತರ ದಾಖಲೆ",
+    "Dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "Notifications": "ಅಧಿಸೂಚನೆಗಳು", "Staff panel": "ಸಿಬ್ಬಂದಿ ಫಲಕ", "Logout": "ಲಾಗ್ ಔಟ್",
+    "Register": "ನೋಂದಣಿ", "Login": "ಲಾಗಿನ್", "Quick help": "ತ್ವರಿತ ಸಹಾಯ",
+    "Need a hand?": "ಸಹಾಯ ಬೇಕೇ?", "Close": "ಮುಚ್ಚಿ", "Report an item": "ವಸ್ತುವನ್ನು ವರದಿ ಮಾಡಿ",
+    "Report Lost / Found Item": "ಕಳೆದುಹೋದ / ಸಿಕ್ಕಿದ ವಸ್ತುವನ್ನು ವರದಿ ಮಾಡಿ",
+    "All categories": "ಎಲ್ಲಾ ವರ್ಗಗಳು",
+    "All status": "ಎಲ್ಲಾ ಸ್ಥಿತಿಗಳು", "Lost": "ಕಳೆದುಹೋಗಿದೆ", "Found": "ಸಿಕ್ಕಿದೆ",
+    "Recovered": "ಮರಳಿ ಸಿಕ್ಕಿದೆ", "Claim Submitted": "ಕ್ಲೇಮ್ ಸಲ್ಲಿಸಲಾಗಿದೆ",
+    "Verification": "ಪರಿಶೀಲನೆ", "Returned": "ಹಿಂತಿರುಗಿಸಲಾಗಿದೆ", "Closed": "ಮುಚ್ಚಲಾಗಿದೆ",
+    "Item Name": "ವಸ್ತುವಿನ ಹೆಸರು", "Category": "ವರ್ಗ", "Brand": "ಬ್ರ್ಯಾಂಡ್",
+    "Color": "ಬಣ್ಣ", "Description": "ವಿವರಣೆ", "Location": "ಸ್ಥಳ", "Date": "ದಿನಾಂಕ",
+    "Approximate time": "ಅಂದಾಜು ಸಮಯ", "Item Photo for Identification": "ಗುರುತಿಗಾಗಿ ವಸ್ತುವಿನ ಫೋಟೋ",
+    "Submit Report": "ವರದಿ ಸಲ್ಲಿಸಿ", "Submit Report Anyway": "ಆದರೂ ವರದಿ ಸಲ್ಲಿಸಿ",
+    "Possible matches": "ಸಂಭಾವ್ಯ ಹೊಂದಾಣಿಕೆಗಳು", "Similar reports already exist.": "ಇದೇ ರೀತಿಯ ವರದಿಗಳು ಈಗಾಗಲೇ ಇವೆ.",
+    "Type": "ಪ್ರಕಾರ", "Optional": "ಐಚ್ಛಿಕ", "Select": "ಆಯ್ಕೆಮಾಡಿ",
+    "Search name, brand, location or description": "ಹೆಸರು, ಬ್ರ್ಯಾಂಡ್, ಸ್ಥಳ ಅಥವಾ ವಿವರಣೆಯನ್ನು ಹುಡುಕಿ",
+    "Filter by campus location": "ಕ್ಯಾಂಪಸ್ ಸ್ಥಳದ ಮೂಲಕ ಫಿಲ್ಟರ್ ಮಾಡಿ",
+    "Building, room, or campus area": "ಕಟ್ಟಡ, ಕೊಠಡಿ ಅಥವಾ ಕ್ಯಾಂಪಸ್ ಪ್ರದೇಶ",
+    "Submit": "ಸಲ್ಲಿಸಿ", "Map": "ನಕ್ಷೆ", "View map": "ನಕ್ಷೆ ವೀಕ್ಷಿಸಿ",
+    "Approve": "ಅನುಮೋದಿಸಿ", "Reject": "ತಿರಸ್ಕರಿಸಿ", "Delete": "ಅಳಿಸಿ",
+    "Update": "ನವೀಕರಿಸಿ", "Download QR": "QR ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
+    "Item status tracking": "ವಸ್ತುವಿನ ಸ್ಥಿತಿ ಟ್ರ್ಯಾಕಿಂಗ್",
+    "Claims Queue": "ಕ್ಲೇಮ್‌ಗಳ ಸರತಿ", "Audit log": "ಆಡಿಟ್ ಲಾಗ್",
+    "Recent actions": "ಇತ್ತೀಚಿನ ಕ್ರಿಯೆಗಳು", "Record handover": "ಹಸ್ತಾಂತರ ದಾಖಲಿಸಿ",
+    "Handover Receipt": "ಹಸ್ತಾಂತರ ರಸೀದಿ", "Print / Save receipt": "ಮುದ್ರಿಸಿ / ರಸೀದಿ ಉಳಿಸಿ",
+    "Receipt": "ರಸೀದಿ", "View receipt": "ರಸೀದಿ ವೀಕ್ಷಿಸಿ",
+    "Email": "ಇಮೇಲ್", "Password": "ಪಾಸ್‌ವರ್ಡ್", "Name": "ಹೆಸರು",
+    "Create Account": "ಖಾತೆ ರಚಿಸಿ", "Submit Claim": "ಕ್ಲೇಮ್ ಸಲ್ಲಿಸಿ",
+    "Private proof / identifying information": "ಖಾಸಗಿ ಪುರಾವೆ / ಗುರುತಿಸುವ ಮಾಹಿತಿ",
+    "Private proof photo": "ಖಾಸಗಿ ಪುರಾವೆ ಫೋಟೋ",
+    "Private supporting document": "ಖಾಸಗಿ ಬೆಂಬಲ ದಾಖಲೆ",
+    "Is this your item?": "ಇದು ನಿಮ್ಮ ವಸ್ತುವೇ?",
+    "Sign in to claim this item": "ಈ ವಸ್ತುವನ್ನು ಕ್ಲೇಮ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ",
+    "Your activity": "ನಿಮ್ಮ ಚಟುವಟಿಕೆ", "Reports": "ವರದಿಗಳು", "Your claims": "ನಿಮ್ಮ ಕ್ಲೇಮ್‌ಗಳು",
+    "My Reports": "ನನ್ನ ವರದಿಗಳು", "My Claim Requests": "ನನ್ನ ಕ್ಲೇಮ್ ವಿನಂತಿಗಳು",
+    "Recent item gallery": "ಇತ್ತೀಚಿನ ವಸ್ತುಗಳು", "Overview": "ಅವಲೋಕನ",
+    "No notifications.": "ಯಾವುದೇ ಅಧಿಸೂಚನೆಗಳಿಲ್ಲ.", "No reports found.": "ಯಾವುದೇ ವರದಿಗಳು ಕಂಡುಬಂದಿಲ್ಲ."
+  },
+  hi: {
+    "Home": "होम", "Features": "विशेषताएँ", "How It Works": "यह कैसे काम करता है",
+    "Contact": "संपर्क", "Now live at SSMRV College, Jayanagar": "SSMRV कॉलेज, जयनगर में अब उपलब्ध",
+    "Lost something?": "कुछ खो गया?",
+    "We'll help you find it.": "इसे खोजने में हम आपकी मदद करेंगे।",
+    "A centralized digital platform to report, search, match, and recover lost belongings across your campus — replacing notice boards and registers with one smart system.": "कैंपस में खोई वस्तुओं की रिपोर्ट, खोज और वापसी के लिए एक स्मार्ट डिजिटल प्लेटफ़ॉर्म।",
+    "Report an Item": "वस्तु की रिपोर्ट करें", "Report an Item Now": "अभी वस्तु की रिपोर्ट करें",
+    "Items Recovered": "वापस मिली वस्तुएँ", "Active Reports": "सक्रिय रिपोर्टें",
+    "% Match Accuracy": "% मिलान सटीकता", "Reported 2 hours ago": "2 घंटे पहले रिपोर्ट किया",
+    "Found near Library": "लाइब्रेरी के पास मिली", "Match found · 94%": "मिलान मिला · 94%",
+    "Matched": "मिलान हुआ", "Why FindIt": "FindIt क्यों",
+    "Everything you need to recover lost items": "खोई वस्तुएँ वापस पाने के लिए सब कुछ",
+    "Report Lost Items": "खोई वस्तु की रिपोर्ट करें",
+    "Register Found Items": "मिली वस्तु दर्ज करें",
+    "Smart Search & Filter": "स्मार्ट खोज और फ़िल्टर",
+    "Secure Claim Verification": "दावे का सुरक्षित सत्यापन",
+    "Instant Notifications": "तत्काल सूचनाएँ",
+    "Admin Dashboard": "व्यवस्थापक डैशबोर्ड", "Process": "प्रक्रिया",
+    "Built on the objectives from our project synopsis — from reporting and image uploads to smart matching and claim verification.": "रिपोर्ट, फोटो अपलोड, स्मार्ट मिलान और दावा सत्यापन में मदद करने वाला प्लेटफ़ॉर्म।",
+    "Submit detailed reports with name, category, description, date, location and photos in seconds.": "नाम, श्रेणी, विवरण, तारीख, स्थान और फोटो के साथ विस्तृत रिपोर्ट जमा करें।",
+    "Found something? Log it instantly so the rightful owner can be notified and reunited.": "कुछ मिला? सही मालिक को सूचना देने के लिए तुरंत रिपोर्ट करें।",
+    "Search by category, keyword, location or date and surface potential matches automatically.": "श्रेणी, कीवर्ड, स्थान या तारीख से खोजें और संभावित मिलान देखें।",
+    "Ownership is verified through proof before any item is handed over — no false claims.": "वस्तु सौंपने से पहले प्रमाण के ज़रिए मालिकाना हक़ सत्यापित किया जाता है।",
+    "Get alerted whenever a new item matches your lost report or a claim updates.": "आपकी रिपोर्ट से मिलान या दावा अपडेट होने पर सूचना पाएँ।",
+    "Full control over users, reports, claims and recovered items with a powerful admin panel.": "व्यवस्थापक पैनल से उपयोगकर्ता, रिपोर्ट, दावे और लौटाई वस्तुएँ सँभालें।",
+    "Four simple steps from reporting to recovery — mapped directly to our project methodology.": "रिपोर्ट से वस्तु वापस पाने तक चार आसान चरण।",
+    "Log your lost or found item with description, category, date, location and a photo.": "विवरण, श्रेणी, तारीख, स्थान और फोटो के साथ खोई या मिली वस्तु दर्ज करें।",
+    "Our system filters and matches reports by keywords, category and location.": "सिस्टम कीवर्ड, श्रेणी और स्थान से रिपोर्ट का मिलान करता है।",
+    "Submit a claim with proof of ownership when a match is identified.": "मिलान मिलने पर मालिकाना प्रमाण के साथ दावा जमा करें।",
+    "Admin verifies and hands over the item. Both parties get notified.": "व्यवस्थापक सत्यापन के बाद वस्तु सौंपता है और दोनों पक्षों को सूचना मिलती है।",
+    "Browse the latest lost and found reports on campus. Use filters to narrow down results.": "कैंपस की नई खोई और मिली वस्तुओं की रिपोर्ट देखें।",
+    "No reports yet. Be the first to report an item.": "अभी कोई रिपोर्ट नहीं है। पहली रिपोर्ट आप जमा करें।",
+    "Don't wait — report it now. Over 1,200 items have already been reunited with their owners through FindIt.": "देर न करें — अभी रिपोर्ट करें। FindIt से कई वस्तुएँ अपने मालिकों तक लौटी हैं।",
+    "All rights reserved.": "सर्वाधिकार सुरक्षित।",
+    "How FindIt works": "FindIt कैसे काम करता है", "Report": "रिपोर्ट",
+    "Search": "खोजें", "Claim": "दावा", "Recover": "वापस पाएँ",
+    "Recently reported items": "हाल ही में रिपोर्ट की गई वस्तुएँ", "All": "सभी",
+    "Electronics": "इलेक्ट्रॉनिक्स", "Documents": "दस्तावेज़", "View →": "देखें →",
+    "Lost something on campus today?": "आज कैंपस में कुछ खो गया?",
+    "Platform": "प्लेटफ़ॉर्म", "Account": "खाता", "College": "कॉलेज",
+    "My Claims": "मेरे दावे", "Admin Contact": "व्यवस्थापक संपर्क",
+    "Digital Handover Record": "डिजिटल हस्तांतरण रिकॉर्ड", "Browse Items": "वस्तुएँ देखें",
+    "Dashboard": "डैशबोर्ड",
+    "Notifications": "सूचनाएँ", "Staff panel": "स्टाफ पैनल", "Logout": "लॉग आउट",
+    "Register": "पंजीकरण", "Login": "लॉग इन", "Quick help": "त्वरित सहायता",
+    "Need a hand?": "मदद चाहिए?", "Close": "बंद करें", "Report an item": "वस्तु की रिपोर्ट करें",
+    "Report Lost / Found Item": "खोई / मिली वस्तु की रिपोर्ट करें",
+    "All categories": "सभी श्रेणियाँ", "All status": "सभी स्थितियाँ",
+    "Lost": "खोई", "Found": "मिली", "Recovered": "वापस मिली",
+    "Claim Submitted": "दावा जमा हुआ", "Verification": "जाँच",
+    "Returned": "लौटाई गई", "Closed": "बंद",
+    "Item Name": "वस्तु का नाम", "Category": "श्रेणी", "Brand": "ब्रांड",
+    "Color": "रंग", "Description": "विवरण", "Location": "स्थान", "Date": "तारीख",
+    "Approximate time": "अनुमानित समय", "Item Photo for Identification": "पहचान के लिए वस्तु की फोटो",
+    "Submit Report": "रिपोर्ट जमा करें", "Submit Report Anyway": "फिर भी रिपोर्ट जमा करें",
+    "Possible matches": "संभावित मिलान", "Similar reports already exist.": "ऐसी मिलती-जुलती रिपोर्ट पहले से मौजूद हैं।",
+    "Type": "प्रकार", "Optional": "वैकल्पिक", "Select": "चुनें",
+    "Search name, brand, location or description": "नाम, ब्रांड, स्थान या विवरण खोजें",
+    "Filter by campus location": "कैंपस स्थान से फ़िल्टर करें",
+    "Building, room, or campus area": "भवन, कमरा या कैंपस क्षेत्र",
+    "Submit": "जमा करें", "Map": "मानचित्र", "View map": "मानचित्र देखें",
+    "Approve": "स्वीकृत करें", "Reject": "अस्वीकार करें", "Delete": "हटाएँ",
+    "Update": "अपडेट करें", "Download QR": "QR डाउनलोड करें",
+    "Item status tracking": "वस्तु की स्थिति ट्रैकिंग",
+    "Claims Queue": "दावों की कतार", "Audit log": "ऑडिट लॉग",
+    "Recent actions": "हाल की गतिविधियाँ", "Record handover": "हस्तांतरण दर्ज करें",
+    "Handover Receipt": "हस्तांतरण रसीद", "Print / Save receipt": "रसीद प्रिंट / सेव करें",
+    "Receipt": "रसीद", "View receipt": "रसीद देखें",
+    "Email": "ईमेल", "Password": "पासवर्ड", "Name": "नाम",
+    "Create Account": "खाता बनाएँ", "Submit Claim": "दावा जमा करें",
+    "Private proof / identifying information": "निजी प्रमाण / पहचान की जानकारी",
+    "Private proof photo": "निजी प्रमाण फोटो", "Private supporting document": "निजी सहायक दस्तावेज़",
+    "Is this your item?": "क्या यह आपकी वस्तु है?",
+    "Sign in to claim this item": "इस वस्तु पर दावा करने के लिए लॉग इन करें",
+    "Your activity": "आपकी गतिविधि", "Reports": "रिपोर्टें", "Your claims": "आपके दावे",
+    "My Reports": "मेरी रिपोर्टें", "My Claim Requests": "मेरे दावा अनुरोध",
+    "Recent item gallery": "हाल की वस्तुएँ", "Overview": "अवलोकन",
+    "No notifications.": "कोई सूचना नहीं।", "No reports found.": "कोई रिपोर्ट नहीं मिली।"
+  }
+};
+
+const originalSiteText = new WeakMap();
+const originalPlaceholders = new WeakMap();
+
+let chatFlow = null;
+let selectedClaimItem = null;
+let pendingClaimProof = '';
+let pendingClaimLocation = '';
+let pendingClaimTime = '';
+let aiChatHistory = [];
+
+function addMessage(text, who = 'bot') {
+  const box = document.getElementById('chatBody');
+  const msg = document.createElement('div');
+  msg.className = 'msg ' + who;
+  msg.textContent = text;
+  box.appendChild(msg);
+  box.scrollTop = box.scrollHeight;
+}
+
+function addChatButton(label, onClick) {
+  const button = document.createElement('button');
+  button.className = 'quick-chip chat-flow-action';
+  button.type = 'button';
+  button.textContent = label;
+  button.addEventListener('click', onClick);
+  const actions = document.querySelector('.chat-actions');
+  actions.appendChild(button);
+}
+
+function getActiveLanguageCode() {
+  return localStorage.getItem('findit-site-language') || localStorage.getItem('findit-chat-language') || 'en';
+}
+
+function translateNotificationMessage(message, languageCode) {
+  if (languageCode === 'en') return message;
+
+  const translations = {
+    kn: {
+      possibleMatch: (item, id, score) => `ಸಂಭಾವ್ಯ ಹೊಂದಾಣಿಕೆ: ${item} ನಿಮ್ಮ ವರದಿ #${id} ಗೆ ಹೊಂದಿಕೆಯಾಗಬಹುದು (${score}%).`,
+      newClaim: id => `ವಸ್ತು #${id} ಗಾಗಿ ಹೊಸ ಕ್ಲೇಮ್ ಸಲ್ಲಿಸಲಾಗಿದೆ.`,
+      claimStatus: (id, status) => `ನಿಮ್ಮ ಕ್ಲೇಮ್ #${id} ${status === 'approved' ? 'ಅನುಮೋದಿಸಲಾಗಿದೆ' : 'ತಿರಸ್ಕರಿಸಲಾಗಿದೆ'}.`,
+      closedClaim: (id, itemId) => `ವಸ್ತು #${itemId} ಗಾಗಿ ಮತ್ತೊಂದು ಕ್ಲೇಮ್ ಅನುಮೋದನೆಯಾದ ಕಾರಣ ನಿಮ್ಮ ಕ್ಲೇಮ್ #${id} ಮುಚ್ಚಲಾಗಿದೆ.`,
+      handover: (itemId, receiptId) => `ವಸ್ತು #${itemId} ಹಸ್ತಾಂತರವನ್ನು ದಾಖಲಿಸಲಾಗಿದೆ. ರಸೀದಿ #${receiptId} ಲಭ್ಯವಿದೆ.`,
+      reminder: (id, item) => `ವಸ್ತು ${item} ಗಾಗಿ ನಿಮ್ಮ ಕ್ಲೇಮ್ #${id} ಇನ್ನೂ ಬಾಕಿಯಿದೆ.`
+    },
+    hi: {
+      possibleMatch: (item, id, score) => `संभावित मिलान: ${item} आपकी रिपोर्ट #${id} से मेल खा सकता है (${score}%).`,
+      newClaim: id => `आइटम #${id} के लिए नया दावा जमा किया गया है।`,
+      claimStatus: (id, status) => `आपका दावा #${id} ${status === 'approved' ? 'स्वीकृत' : 'अस्वीकृत'} हुआ।`,
+      closedClaim: (id, itemId) => `आइटम #${itemId} के लिए दूसरा दावा स्वीकृत होने के कारण आपका दावा #${id} बंद कर दिया गया।`,
+      handover: (itemId, receiptId) => `आइटम #${itemId} का हस्तांतरण दर्ज किया गया। रसीद #${receiptId} उपलब्ध है।`,
+      reminder: (id, item) => `आइटम ${item} के लिए आपका दावा #${id} अभी भी लंबित है।`
+    }
+  }[languageCode];
+  if (!translations) return message;
+
+  let match = message.match(/^Possible match: (.+) may match your report #(\d+) \((\d+(?:\.\d+)?)%\)\.$/);
+  if (match) return translations.possibleMatch(match[1], match[2], match[3]);
+  match = message.match(/^A new claim was submitted for item #(\d+)\.$/);
+  if (match) return translations.newClaim(match[1]);
+  match = message.match(/^Your claim #(\d+) was (approved|rejected)\.$/);
+  if (match) return translations.claimStatus(match[1], match[2]);
+  match = message.match(/^Your claim #(\d+) was closed because another claim for item #(\d+) was approved\.$/);
+  if (match) return translations.closedClaim(match[1], match[2]);
+  match = message.match(/^Handover for item #(\d+) was recorded\. Receipt #(\d+) is available\.$/);
+  if (match) return translations.handover(match[1], match[2]);
+  match = message.match(/^Reminder: your claim #(\d+) for (.+) is still pending\.$/);
+  if (match) return translations.reminder(match[1], match[2]);
+  return message;
+}
+
+function applyChatLanguage() {
+  const languageCode = getActiveLanguageCode();
+  const language = chatTranslations[languageCode] || chatTranslations.en;
+  const siteText = siteTranslations[languageCode] || {};
+  document.documentElement.lang = languageCode;
+  document.getElementById('chatWelcome').textContent = language.welcome;
+  document.getElementById('chatInput').placeholder = language.placeholder;
+  document.getElementById('chatSendButton').textContent = language.send;
+  document.getElementById('chatPrivacyNote').textContent = language.privacy;
+  document.querySelectorAll('.quick-chip[data-chat-label]').forEach(button => {
+    button.textContent = language[button.dataset.chatLabel];
+  });
+  document.querySelectorAll('[data-notification-message]').forEach(element => {
+    element.textContent = translateNotificationMessage(element.dataset.notificationMessage, languageCode);
+  });
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let textNode;
+  while ((textNode = walker.nextNode())) {
+    const parent = textNode.parentElement;
+    if (!parent || parent.closest('.chat-widget') || parent.closest('[data-i18n]') || parent.closest('[data-i18n-placeholder]')) continue;
+    if (!originalSiteText.has(textNode)) originalSiteText.set(textNode, textNode.nodeValue);
+    const original = originalSiteText.get(textNode);
+    const trimmed = original.trim().replace(/\s+/g, ' ');
+    const start = original.search(/\S/);
+    const end = original.search(/\s*$/);
+    const translated = languageCode === 'en' ? trimmed : (siteText[trimmed] || trimmed);
+    textNode.nodeValue = original.slice(0, start) + translated + original.slice(end);
+  }
+  document.querySelectorAll('[placeholder]').forEach(element => {
+    if (!originalPlaceholders.has(element)) originalPlaceholders.set(element, element.placeholder);
+    const original = originalPlaceholders.get(element);
+    element.placeholder = siteText[original] || original;
+  });
+}
+
+function formatChatText(template, values) {
+  return template.replace(/\{(\w+)\}/g, (_match, key) => values[key] || '');
+}
+
+function resetClaimConversation() {
+  chatFlow = null;
+  selectedClaimItem = null;
+  pendingClaimProof = '';
+  pendingClaimLocation = '';
+  pendingClaimTime = '';
+  document.querySelectorAll('.chat-flow-action').forEach(button => button.remove());
+}
+
+async function selectClaimItem(item) {
+  addMessage(item.name, 'user');
+  await sendChatQuery('', 'claim-select', item.id);
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const value = input.value.trim();
+  if (!value) return;
+  addMessage(value, 'user');
+  input.value = '';
+  const normalized = value.toLowerCase();
+  if (chatFlow === 'claim-search' && (
+    normalized.includes('office') ||
+    normalized.includes('i lost') ||
+    normalized.includes('lost my') ||
+    normalized.includes('report a') ||
+    normalized.startsWith('show found')
+  )) {
+    resetClaimConversation();
+  }
+  if (chatFlow === 'claim-proof') {
+    pendingClaimProof = value;
+    chatFlow = 'claim-lost-location';
+    const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
+    addMessage(language.where, 'bot');
+    return;
+  }
+  if (chatFlow === 'claim-lost-location') {
+    pendingClaimLocation = value;
+    chatFlow = 'claim-lost-when';
+    const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
+    addMessage(language.when, 'bot');
+    return;
+  }
+  if (chatFlow === 'claim-lost-when') {
+    pendingClaimTime = value;
+    chatFlow = 'claim-confirm';
+    const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
+    addMessage(formatChatText(language.confirmation, {
+      item: selectedClaimItem.name,
+      proof: pendingClaimProof,
+      location: pendingClaimLocation,
+      time: pendingClaimTime
+    }), 'bot');
+    addChatButton(language.yes, submitChatClaim);
+    addChatButton(language.cancel, cancelChatClaim);
+    return;
+  }
+  if (chatFlow === 'claim-confirm') {
+    if (/^(yes|yes, submit|submit|confirm)$/i.test(value)) {
+      submitChatClaim();
+    } else if (/^(no|cancel|no, cancel)$/i.test(value)) {
+      cancelChatClaim();
+    } else {
+      const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
+      addMessage(formatChatText(language.confirmPrompt, {yes: language.yes, cancel: language.cancel}), 'bot');
+    }
+    return;
+  }
+  sendChatQuery(value);
+}
+
+async function sendChatQuery(text, flow = chatFlow, itemId = null) {
+  try {
+    const response = await fetch('{{ url_for("chatbot") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        flow,
+        item_id: itemId,
+        language: getActiveLanguageCode(),
+        history: aiChatHistory
+      })
+    });
+    const data = await response.json();
+    addMessage(data.answer || 'I could not process that request.');
+    if (data.ai_generated && text) {
+      aiChatHistory.push(
+        { role: 'user', content: text },
+        { role: 'assistant', content: data.answer }
+      );
+      aiChatHistory = aiChatHistory.slice(-10);
+    }
+    chatFlow = data.next_step || null;
+    if (data.claim_item) selectedClaimItem = data.claim_item;
+    if (data.login_url) {
+      const link = document.createElement('a');
+      link.className = 'msg bot';
+      link.href = data.login_url;
+      link.textContent = 'Sign in to continue';
+      document.getElementById('chatBody').appendChild(link);
+    }
+    (data.items || []).forEach(item => {
+      const box = document.getElementById('chatBody');
+      if (data.next_step === 'claim-select' && item.id) {
+        const button = document.createElement('button');
+        button.className = 'msg bot';
+        button.type = 'button';
+        button.textContent = `${item.name} · ${item.category} · ${item.location} · ${item.date} — Select`;
+        button.addEventListener('click', () => selectClaimItem(item));
+        box.appendChild(button);
+      } else {
+        const link = document.createElement('a');
+        link.className = 'msg bot';
+        link.href = item.url;
+        link.textContent = `${item.name} · ${item.category} · ${item.location} · ${item.date}`;
+        box.appendChild(link);
+      }
+      box.scrollTop = box.scrollHeight;
+    });
+  } catch (error) {
+    addMessage('The item search is temporarily unavailable. Please try Browse Items.');
+  }
+}
+
+function submitChatClaim() {
+  if (!selectedClaimItem || !pendingClaimProof) return;
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.enctype = 'multipart/form-data';
+  form.action = selectedClaimItem.claim_url;
+  const proof = document.createElement('input');
+  proof.type = 'hidden';
+  proof.name = 'proof';
+  proof.value = [
+    `Item claimed: ${selectedClaimItem.name}`,
+    `Ownership details: ${pendingClaimProof}`,
+    `Where I last had the item: ${pendingClaimLocation}`,
+    `When I lost the item: ${pendingClaimTime}`
+  ].join('\n');
+  form.appendChild(proof);
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function cancelChatClaim() {
+  chatFlow = null;
+  selectedClaimItem = null;
+  pendingClaimProof = '';
+  pendingClaimLocation = '';
+  pendingClaimTime = '';
+  document.querySelectorAll('.chat-flow-action').forEach(button => button.remove());
+  const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
+  addMessage(language.cancelled);
+}
+
+document.getElementById('chatInput').addEventListener('keydown', function (event) {
+  if (event.key === 'Enter') sendChatMessage();
+});
+
+document.querySelectorAll('.quick-chip').forEach(button => {
+  button.addEventListener('click', () => {
+    const msg = button.getAttribute('data-msg');
+    resetClaimConversation();
+    addMessage(msg, 'user');
+    sendChatQuery(msg, null);
+  });
+});
+
+function toggleChat() {
+  document.getElementById('chatBox').classList.toggle('open');
+}
+
+function syncChatLanguageFromSite() {
+  const lang = getActiveLanguageCode();
+  localStorage.setItem('findit-chat-language', lang);
+  applyChatLanguage();
+}
+
+syncChatLanguageFromSite();
+window.addEventListener('storage', (event) => {
+  if (event.key === 'findit-site-language') {
+    syncChatLanguageFromSite();
+  }
+});
+</script>

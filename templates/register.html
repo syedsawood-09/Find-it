@@ -1,0 +1,72 @@
+{% extends "base.html" %}{% block title %}Register | FindIt{% endblock %}{% block content %}
+<style>
+  .auth-shell {
+    max-width: 620px;
+    margin: 48px auto 32px;
+    padding: 36px 28px;
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,241,255,0.98));
+    border: 1px solid rgba(91,76,240,0.12);
+    box-shadow: 0 22px 60px rgba(35, 25, 78, 0.12);
+  }
+  .auth-shell h1 {
+    margin-bottom: 12px;
+    font-size: clamp(2rem, 4vw, 2.6rem);
+  }
+  .auth-sub {
+    margin-bottom: 22px;
+    color: var(--muted);
+  }
+  .auth-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .auth-form .full {
+    grid-column: 1 / -1;
+  }
+  .auth-form .btn {
+    margin-top: 14px;
+    width: 100%;
+    justify-content: center;
+  }
+  @media (max-width: 640px) {
+    .auth-grid { grid-template-columns: 1fr; }
+  }
+</style>
+<div class="auth-shell">
+  <p class="eyebrow" data-i18n="createAccountTitle">Create account</p>
+  <h1 data-i18n="joinFindIt">Join FindIt</h1>
+  <p class="auth-sub" data-i18n="registerSubtitle">Register to report lost items, claim found items, and track every update in one place.</p>
+  <form class="auth-form" method="post">
+    <div class="auth-grid">
+      <div>
+        <label data-i18n="nameLabel">Name</label>
+        <input name="name" required>
+      </div>
+      <div>
+        <label data-i18n="emailLabel">Email</label>
+        <input type="email" name="email" required>
+      </div>
+      <div>
+        <label data-i18n="phoneLabel">Mobile Number</label>
+        <input type="tel" name="phone" data-i18n-placeholder="phonePlaceholder" placeholder="+91 98765 43210">
+      </div>
+      <div>
+        <label data-i18n="studentIdLabel">Student ID</label>
+        <input type="text" name="student_id" data-i18n-placeholder="studentIdPlaceholder" placeholder="e.g. 2024CS101">
+      </div>
+      <div class="full">
+        <label data-i18n="passwordLabel">Password</label>
+        <input type="password" name="password" minlength="6" required>
+      </div>
+    </div>
+    <button class="btn" type="submit" data-i18n="registerButton">Register</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "base.html" %}{% block title %}Browse Items | FindIt{% endblock %}{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  .browse-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 12px;
+  }
+  .browse-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .browse-header h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3rem);
+  }
+  .browse-search {
+    display: grid;
+    grid-template-columns: 1.6fr repeat(2, minmax(160px, 1fr)) 140px;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(244,241,255,0.96));
+    border: 1px solid rgba(91,76,240,0.12);
+    box-shadow: 0 18px 40px rgba(35, 25, 78, 0.08);
+  }
+  .browse-search input,
+  .browse-search select {
+    width: 100%;
+  }
+  .search-btn {
+    align-self: end;
+    min-height: 46px;
+  }
+  .map-panel {
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(91,76,240,0.12);
+    box-shadow: 0 22px 50px rgba(35, 25, 78, 0.10);
+  }
+  #bengaluruMap {
+    height: 360px;
+    width: 100%;
+  }
+  .grid {
+    margin-top: 8px;
+  }
+  .card {
+    position: relative;
+    overflow: hidden;
+  }
+  .badge {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(91,76,240,0.10);
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+  .badge.found { background: rgba(28,184,131,.12); color: var(--success); }
+  .badge.lost { background: rgba(239,95,108,.10); color: var(--danger); }
+  @media (max-width: 880px) {
+    .browse-search {
+      grid-template-columns: 1fr 1fr;
+    }
+    .search-btn {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 560px) {
+    .browse-search { grid-template-columns: 1fr; }
+  }
+</style>
+<div class="browse-shell">
+  <div class="browse-header">
+    <div>
+      <p class="eyebrow">Item directory</p>
+      <h1>Browse reports</h1>
+    </div>
+    <span class="chip">{{ items|length }} active records</span>
+  </div>
+
+  <form class="browse-search" method="get">
+    <input name="q" value="{{ q }}" placeholder="Search item, brand, location or description">
+    <input name="location" value="{{ location }}" placeholder="Campus area / location">
+    <select name="neighborhood">
+      <option value="">All Bengaluru neighborhoods</option>
+      <option value="Koramangala" {% if neighborhood == 'Koramangala' %}selected{% endif %}>Koramangala</option>
+      <option value="Indiranagar" {% if neighborhood == 'Indiranagar' %}selected{% endif %}>Indiranagar</option>
+      <option value="Majestic" {% if neighborhood == 'Majestic' %}selected{% endif %}>Majestic</option>
+      <option value="Whitefield" {% if neighborhood == 'Whitefield' %}selected{% endif %}>Whitefield</option>
+      <option value="HSR Layout" {% if neighborhood == 'HSR Layout' %}selected{% endif %}>HSR Layout</option>
+    </select>
+    <select name="category">
+      <option value="">All categories</option>
+      {% for c in ['Electronics','Documents','Wallet','Keys','Bag','Books','Other'] %}
+        <option value="{{ c }}" {% if category == c %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">All status</option>
+      {% for s in ['Lost','Found','Claim Submitted','Verification','Returned','Closed','Recovered'] %}
+        <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn search-btn" type="submit">Search</button>
+  </form>
+
+  <div class="map-panel">
+    <div id="bengaluruMap"></div>
+  </div>
+
+  <div class="grid">
+    {% for i in items %}
+      <div class="card">
+        <a href="{{ url_for('item_detail', item_id=i[0]) }}" style="text-decoration:none;color:inherit">
+          <span class="badge {{ i[8]|lower }}">{{ i[8] }}</span>
+          <h3>{{ i[2] }}</h3>
+          <p>{{ i[4] }}</p>
+          <p>📍 {{ i[5] }} · <span onclick="event.preventDefault();window.open('https://www.openstreetmap.org/search?query={{ i[5]|urlencode }}','_blank','noopener')">Open map</span></p>
+          <small>{{ i[6] }}</small>
+        </a>
+        {% if i[8] in ['Found', 'Claim Submitted'] %}
+          {% if session.get('user_id') and i[1] != session.get('user_id') %}
+            <a class="btn" href="{{ url_for('item_detail', item_id=i[0]) }}#claim">Claim this item</a>
+          {% elif not session.get('user_id') %}
+            <a class="muted-link" href="{{ url_for('login') }}">Sign in to claim</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="empty-state" style="padding:24px 0;">No reports found for the selected filters.</div>
+    {% endfor %}
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('bengaluruMap').setView([12.9716, 77.5946], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+const items = {{ map_items | tojson }};
+items.forEach(item => {
+  const marker = L.marker([item.lat, item.lng]).addTo(map);
+  marker.bindPopup(`<strong>${item.name}</strong><br>${item.status}<br>${item.location}`);
+});
+</script>
+{% endblock %}

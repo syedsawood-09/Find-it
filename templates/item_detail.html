@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block title %}Item | FindIt{% endblock %}{% block content %}
+<div class="box">
+	<span class="badge">{{ item[8] }}</span><h1>{{ item[2] }}</h1>
+	{% if item[7] %}<div style="margin:18px 0"><img src="{{ url_for('static', filename='uploads/' + item[7]) }}" alt="{{ item[2] }}" style="max-width:100%;max-height:340px;border-radius:12px;border:1px solid #dbe2ea;object-fit:cover;display:block"></div>{% endif %}
+	<p><b>Category:</b> {{ item[3] }}</p><p><b>Description:</b> {{ item[4] }}</p>
+	<p><b>Location:</b> {{ item[5] }} · <a target="_blank" rel="noopener" href="https://www.openstreetmap.org/search?query={{ item[5]|urlencode }}">View map</a></p>
+	<p><b>Date:</b> {{ item[6] }}</p><p><b>Reported by:</b> {{ item[10] }}</p>
+	{% if item[8] in ['Found', 'Claim Submitted'] and session.get('user_id') and item[1] != session.get('user_id') %}
+	<hr><section id="claim"><h2>Is this your item?</h2><p>Submit identifying details so staff can verify ownership.</p>
+	<form method="post" action="{{ url_for('claim', item_id=item[0]) }}" enctype="multipart/form-data">
+		<label>Private proof / identifying information</label><textarea name="proof" required></textarea>
+		<label>Private proof photo</label><input type="file" name="proof_image" accept="image/png,image/jpeg,image/webp">
+		<label>Private supporting document</label><input type="file" name="proof_file" accept=".pdf,.png,.jpg,.jpeg,.webp">
+		<small>Evidence is stored privately and can only be downloaded by staff, security, or administrators.</small><br><br>
+		<button class="btn" type="submit">Submit Claim</button>
+	</form>
+	</section>
+	{% elif item[8] in ['Found', 'Claim Submitted'] and not session.get('user_id') %}
+	<hr><p><a class="btn" href="{{ url_for('login') }}">Sign in to claim this item</a></p>
+	{% endif %}
+</div>
+{% endblock %}

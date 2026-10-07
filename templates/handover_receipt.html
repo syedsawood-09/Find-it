@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Handover Receipt #{{ receipt[0] }} | FindIt</title>
+  <style>
+    body{font:16px/1.5 system-ui,sans-serif;color:#0f172a;max-width:760px;margin:40px auto;padding:0 24px}
+    main{border:1px solid #cbd5e1;border-radius:16px;padding:32px}
+    h1{margin-top:0}.row{padding:12px 0;border-bottom:1px solid #e2e8f0}
+    .label{display:block;color:#64748b;font-size:.82rem;text-transform:uppercase;letter-spacing:.05em}
+    .signature{margin-top:32px;padding-top:20px;border-top:1px solid #94a3b8}
+    button,a{display:inline-block;margin-top:20px;padding:10px 16px;border-radius:8px}
+    @media print{button,a{display:none}body{margin:0}main{border:0}}
+  </style>
+</head>
+<body>
+  <main>
+    <label for="receiptLanguage">Language
+      <select id="receiptLanguage">
+        <option value="en">English</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+    </label>
+    <p data-copy="FindIt · Digital Handover Record">FindIt · Digital Handover Record</p>
+    <h1 data-copy="Item Handover Receipt">Item Handover Receipt</h1>
+    <div class="row"><span class="label" data-copy="Receipt">Receipt</span>#{{ receipt[0] }}</div>
+    <div class="row"><span class="label" data-copy="Item ID">Item ID</span>#{{ receipt[1] }} · {{ receipt[2] }}</div>
+    <div class="row"><span class="label" data-copy="Owner / receiver">Owner / receiver</span>{{ receipt[4] }}</div>
+    <div class="row"><span class="label" data-copy="Found report submitted by">Found report submitted by</span>{{ receipt[8] }}</div>
+    <div class="row"><span class="label" data-copy="Date and time">Date and time</span>{{ receipt[6] }}</div>
+    <div class="row"><span class="label" data-copy="Authorized staff">Authorized staff</span>{{ receipt[5] }}</div>
+    <div class="signature">
+      <strong data-copy="Digital confirmation">Digital confirmation</strong>
+      <p><span data-copy="Receiver confirmed">Receiver confirmed</span>: {{ receipt[4] }}. <span data-copy="Confirmation recorded by">Confirmation recorded by</span> {{ receipt[5] }}.</p>
+      <p><span data-copy="Confirmation status">Confirmation status</span>: <span data-copy="{{ 'Confirmed' if receipt[7] else 'Not confirmed' }}">{{ 'Confirmed' if receipt[7] else 'Not confirmed' }}</span></p>
+    </div>
+    <button type="button" onclick="window.print()" data-copy="Print / Save receipt">Print / Save receipt</button>
+    <a href="{{ url_for('dashboard') }}" data-copy="Return to FindIt">Return to FindIt</a>
+  </main>
+  <script>
+    const receiptTranslations = {
+      kn: {
+        "Language": "ಭಾಷೆ", "FindIt · Digital Handover Record": "FindIt · ಡಿಜಿಟಲ್ ಹಸ್ತಾಂತರ ದಾಖಲೆ",
+        "Item Handover Receipt": "ವಸ್ತು ಹಸ್ತಾಂತರ ರಸೀದಿ", "Receipt": "ರಸೀದಿ",
+        "Item ID": "ವಸ್ತು ID", "Owner / receiver": "ಮಾಲೀಕ / ಸ್ವೀಕರಿಸುವವರು",
+        "Found report submitted by": "ಸಿಕ್ಕಿದ ವರದಿ ಸಲ್ಲಿಸಿದವರು", "Date and time": "ದಿನಾಂಕ ಮತ್ತು ಸಮಯ",
+        "Authorized staff": "ಅಧಿಕೃತ ಸಿಬ್ಬಂದಿ", "Digital confirmation": "ಡಿಜಿಟಲ್ ದೃಢೀಕರಣ",
+        "Receiver confirmed": "ಸ್ವೀಕರಿಸಿದವರು ದೃಢಪಡಿಸಿದ್ದಾರೆ",
+        "Confirmation recorded by": "ದೃಢೀಕರಣ ದಾಖಲಿಸಿದವರು",
+        "Confirmation status": "ದೃಢೀಕರಣ ಸ್ಥಿತಿ", "Confirmed": "ದೃಢಪಡಿಸಲಾಗಿದೆ",
+        "Not confirmed": "ದೃಢಪಡಿಸಿಲ್ಲ", "Print / Save receipt": "ಮುದ್ರಿಸಿ / ರಸೀದಿ ಉಳಿಸಿ",
+        "Return to FindIt": "FindIt ಗೆ ಹಿಂತಿರುಗಿ"
+      },
+      hi: {
+        "Language": "भाषा", "FindIt · Digital Handover Record": "FindIt · डिजिटल हस्तांतरण रिकॉर्ड",
+        "Item Handover Receipt": "वस्तु हस्तांतरण रसीद", "Receipt": "रसीद",
+        "Item ID": "वस्तु ID", "Owner / receiver": "मालिक / प्राप्तकर्ता",
+        "Found report submitted by": "मिली वस्तु की रिपोर्ट देने वाला",
+        "Date and time": "तारीख और समय", "Authorized staff": "अधिकृत स्टाफ",
+        "Digital confirmation": "डिजिटल पुष्टि", "Receiver confirmed": "प्राप्तकर्ता ने पुष्टि की",
+        "Confirmation recorded by": "पुष्टि दर्ज करने वाला", "Confirmation status": "पुष्टि की स्थिति",
+        "Confirmed": "पुष्टि हुई", "Not confirmed": "पुष्टि नहीं हुई",
+        "Print / Save receipt": "रसीद प्रिंट / सेव करें", "Return to FindIt": "FindIt पर लौटें"
+      }
+    };
+    const languageControl = document.getElementById('receiptLanguage');
+    languageControl.value = localStorage.getItem('findit-chat-language') || 'en';
+    function translateReceipt() {
+      const language = languageControl.value;
+      const translations = receiptTranslations[language] || {};
+      document.documentElement.lang = language;
+      document.querySelectorAll('[data-copy]').forEach(element => {
+        const source = element.dataset.copy;
+        element.textContent = translations[source] || source;
+      });
+    }
+    translateReceipt();
+    languageControl.addEventListener('change', () => {
+      localStorage.setItem('findit-chat-language', languageControl.value);
+      translateReceipt();
+    });
+  </script>
+</body>
+</html>

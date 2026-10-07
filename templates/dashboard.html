@@ -1,0 +1,177 @@
+{% extends "base.html" %}{% block title %}Dashboard | FindIt{% endblock %}{% block content %}
+<div class="dashboard-page">
+  <section class="hero-panel">
+    <div>
+      <p class="eyebrow" data-i18n="yourActivity">Your activity</p>
+      <h1><span data-i18n="welcomeUser">Welcome back,</span> {{ session.get('name') }} 👋</h1>
+      <p data-i18n="trackUpdates">Track your reports, claim progress, and notifications in one place.</p>
+    </div>
+    <a class="btn pulse" href="{{ url_for('report') }}" data-i18n="reportItem">+ Report Item</a>
+  </section>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label" data-i18n="reportsLabel">Reports</div>
+      <div class="value">{{ totals.reports }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label" data-i18n="foundLabel">Found</div>
+      <div class="value">{{ totals.found }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label" data-i18n="recoveredLabel">Recovered</div>
+      <div class="value">{{ totals.recovered }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label" data-i18n="yourClaimsLabel">Your claims</div>
+      <div class="value">{{ claims|length }}</div>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2 data-i18n="recentItemGallery">Recent item gallery</h2>
+      <span class="chip">{{ totals.reports }} <span data-i18n="reportsSoFar">reports so far</span></span>
+    </div>
+    {% set fallback_photos = [
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80'
+    ] %}
+    <div class="gallery-grid">
+      {% for item in recent_items %}
+      <a class="gallery-card" href="{{ url_for('item_detail', item_id=item[0]) }}">
+        <img
+          class="gallery-thumb"
+          src="{% if item[5] %}{{ url_for('static', filename='uploads/' + item[5]) }}{% else %}{{ fallback_photos[loop.index0 % fallback_photos|length] }}{% endif %}"
+          alt="{{ item[1] }}"
+          loading="lazy"
+        >
+        <div class="gallery-meta">
+          <h3>{{ item[1] }}</h3>
+          <p>{{ item[3] }} · {{ item[2] }}</p>
+          <div class="gallery-tags">
+            <span class="mini-pill {{ item[4]|lower }}">{{ item[4] }}</span>
+            <small>{{ item[7] }}</small>
+          </div>
+        </div>
+      </a>
+      {% else %}
+      <div class="empty-state">No recent items yet. As soon as someone reports a lost or found item, it will appear here with a photo.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2 data-i18n="overviewLabel">Overview</h2>
+      <span class="chip" data-i18n="liveActivity">Live activity</span>
+    </div>
+    <div class="chart-box">
+      <div class="chart-bars">
+        <div class="bar-col">
+          <div class="bar" style="height:{{ totals.lost_bar }}%;"></div>
+          <div class="bar-label">Lost</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar green" style="height:{{ totals.found_bar }}%;"></div>
+          <div class="bar-label">Found</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar yellow" style="height:{{ totals.recovered_bar }}%;"></div>
+          <div class="bar-label">Recovered</div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span> Recent</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Verified</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Completed</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2 data-i18n="myReports">My Reports</h2>
+      <a class="muted-link" href="{{ url_for('items') }}" data-i18n="browseAllItems">Browse all items</a>
+    </div>
+    <div class="table">
+      <table>
+        <tr>
+          <th data-i18n="itemLabel">Item</th>
+          <th data-i18n="categoryLabel">Category</th>
+          <th data-i18n="statusLabel">Status</th>
+          <th data-i18n="dateLabel">Date</th>
+        </tr>
+        {% for i in my_items %}
+        <tr>
+          <td><div class="link-row"><a href="{{ url_for('item_detail', item_id=i[0]) }}">{{ i[2] }}</a></div></td>
+          <td>{{ i[3] }}</td>
+          <td><span class="status-pill status-{{ i[8]|lower }}">{{ i[8] }}</span></td>
+          <td>{{ i[6] }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4"><div class="empty-state">No reports yet. Create your first lost or found entry.</div></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2 data-i18n="myClaimRequests">My Claim Requests</h2>
+      <span class="chip">{{ my_claims|length }} <span data-i18n="submittedLabel">submitted</span></span>
+    </div>
+    <div class="table">
+      <table>
+        <tr><th>Item</th><th>Claim decision</th><th>Item status</th><th>Submitted</th><th>Receipt</th></tr>
+        {% for claim in my_claims %}
+        <tr>
+          <td><a href="{{ url_for('item_detail', item_id=claim[1]) }}">{{ claim[2] }}</a></td>
+          <td><span class="status-pill status-{{ claim[3]|lower }}">{{ claim[3] }}</span></td>
+          <td>{{ claim[4] }}</td><td>{{ claim[5] }}</td>
+          <td>{% if claim[6] %}<a href="{{ url_for('handover_receipt', item_id=claim[1]) }}">View receipt</a>{% else %}-{% endif %}</td>
+        </tr>
+        {% else %}<tr><td colspan="5"><div class="empty-state">You haven't claimed an item yet. Browse found items to get started.</div></td></tr>{% endfor %}
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2 data-i18n="claimsLabel">Claims</h2>
+      <div class="chip-group">
+        <span class="chip" data-i18n="pendingLabel">Pending</span>
+        <span class="chip" data-i18n="approvedLabel">Approved</span>
+      </div>
+    </div>
+    <div class="table">
+      <table>
+        <tr>
+          <th>Item</th>
+          <th>Claimant</th>
+          <th>Proof</th>
+          <th>Status</th>
+        </tr>
+        {% for c in claims %}
+        <tr>
+          <td>{{ c[1] }}</td>
+          <td>{{ c[2] }}</td>
+          <td>Private, staff only</td>
+          <td><span class="status-pill status-{{ c[3]|lower }}">{{ c[3] }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4"><div class="empty-state">No claims yet. People will appear here once they submit proof.</div></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

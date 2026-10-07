@@ -1,0 +1,51 @@
+{% extends "base.html" %}{% block title %}Report Item | FindIt{% endblock %}{% block content %}
+<div class="box">
+	<h1>Report Lost / Found Item</h1>
+	{% if duplicate_items %}
+	<div class="flash" role="alert"><strong>Similar reports already exist.</strong> Review these before submitting again. Choose your photo again if you continue.</div>
+	<div class="grid">
+		{% for match in duplicate_items %}
+		<a class="card" href="{{ url_for('item_detail', item_id=match.id) }}" style="text-decoration:none;color:inherit">
+			<strong>{{ match.name }}</strong><p>{{ match.category }} · {{ match.location }}</p>
+			<span class="chip">{{ match.score }}% similar</span>
+			{% if match.image_score is not none %}<small>{{ 'AI visual similarity' if match.match_method == 'AI visual + metadata' else 'Photo similarity' }}: {{ match.image_score }}%</small>{% endif %}
+		</a>
+		{% endfor %}
+	</div>
+	{% endif %}
+	{% if possible_matches %}
+	<section class="panel" style="margin:18px 0">
+		<h2>Possible matches</h2>
+		<p>These existing reports may relate to yours. You can still submit your report.</p>
+		{% for match in possible_matches %}
+		<p><a href="{{ url_for('item_detail', item_id=match.id) }}">{{ match.name }}</a> · {{ match.location }} · {{ match.score }}% match{% if match.image_score is not none %} · {{ 'AI visual' if match.match_method == 'AI visual + metadata' else 'photo' }} {{ match.image_score }}%{% endif %}</p>
+		{% endfor %}
+	</section>
+	{% endif %}
+	<form method="post" enctype="multipart/form-data">
+		<label>Type</label>
+		<select name="item_type">
+			<option value="Lost" {% if form_data.get('item_type', 'Lost') == 'Lost' %}selected{% endif %}>Lost</option>
+			<option value="Found" {% if form_data.get('item_type') == 'Found' %}selected{% endif %}>Found</option>
+		</select>
+		<label>Item Name</label><input name="item_name" value="{{ form_data.get('item_name', '') }}" required>
+		<label>Category</label>
+		<select name="category">
+			{% for category in ['Electronics','Documents','Wallet','Keys','Bag','Books','Other'] %}
+			<option value="{{ category }}" {% if form_data.get('category', 'Electronics') == category %}selected{% endif %}>{{ category }}</option>
+			{% endfor %}
+		</select>
+		<label>Brand</label><input name="brand" value="{{ form_data.get('brand', '') }}" placeholder="Optional">
+		<label>Color</label><input name="color" value="{{ form_data.get('color', '') }}" placeholder="Optional">
+		<label>Description</label><textarea name="description" required>{{ form_data.get('description', '') }}</textarea>
+		<label>Location</label><input name="location" value="{{ form_data.get('location', '') }}" required placeholder="Building, room, or campus area">
+		<label>Date</label><input type="date" name="event_date" value="{{ form_data.get('event_date', '') }}" required>
+		<label>Approximate time</label><input type="time" name="event_time" value="{{ form_data.get('event_time', '') }}">
+		<label>Item Photo for Identification</label><input type="file" name="image" accept="image/*">
+		<small>Use a clear item photo. Do not include private documents in the public item photo. If AI image matching is enabled, this public report photo may be sent to OpenAI for visual comparison; private claim evidence is never sent.</small>
+		<label><input type="checkbox" name="is_anonymous" {% if form_data.get('is_anonymous') %}checked{% endif %} style="width:auto"> Hide my name on the public report</label>
+		{% if duplicate_items %}<input type="hidden" name="confirm_report" value="yes">{% endif %}
+		<br><br><button class="btn" type="submit">{% if duplicate_items %}Submit Report Anyway{% else %}Submit Report{% endif %}</button>
+	</form>
+</div>
+{% endblock %}

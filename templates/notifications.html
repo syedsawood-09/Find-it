@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block title %}Notifications | FindIt{% endblock %}{% block content %}
+<section class="page-shell">
+  <div class="panel">
+    <h1 data-i18n="notifications">Notifications</h1>
+    {% for n in notifications %}
+    <div class="box" style="margin-bottom:10px">
+      <div data-notification-message="{{ n[2] }}">{{ n[2] }}</div>
+      <small style="display:block;color:#64748b">{{ n[4] }}</small>
+    </div>
+    {% else %}
+    <p data-i18n="noNotifications">No notifications.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
