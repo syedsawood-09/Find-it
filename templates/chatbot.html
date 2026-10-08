@@ -44,6 +44,7 @@
   <button class="chat-toggle" type="button" aria-label="Open chat" onclick="toggleChat()">💬</button>
 </div>
 <script>
+(function () {
 const chatTranslations = {
   en: {
     welcome: "Hi! What would you like help with today? I can help report a lost item, find found items, start a claim, or locate the office.",
@@ -551,10 +552,13 @@ function syncChatLanguageFromSite() {
   applyChatLanguage();
 }
 
+window.toggleChat = toggleChat;
+window.sendChatMessage = sendChatMessage;
 syncChatLanguageFromSite();
 window.addEventListener('storage', (event) => {
   if (event.key === 'findit-site-language') {
     syncChatLanguageFromSite();
   }
 });
+})();
 </script>
