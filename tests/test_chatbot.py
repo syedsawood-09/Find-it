@@ -1,5 +1,9 @@
+import io
 import os
 import sys
+import urllib.error
+
+import pytest
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
@@ -142,6 +146,42 @@ def test_chatbot_reports_missing_ai_configuration(monkeypatch):
 
     assert response.status_code == 503
     assert "OPENAI_API_KEY" in response.get_json()["answer"]
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_message"),
+    [
+        (401, "OpenAI rejected the API key"),
+        (403, "OpenAI denied access"),
+        (404, "could not find the configured model"),
+        (429, "billing quota blocked this request"),
+        (500, "OpenAI is temporarily unavailable"),
+    ],
+)
+def test_chatbot_explains_openai_http_errors(monkeypatch, status, expected_message):
+    def fail_to_generate(*_args):
+        raise urllib.error.HTTPError(
+            "https://api.openai.com/v1/chat/completions",
+            status,
+            "Request failed",
+            {},
+            io.BytesIO(
+                b'{"error":{"message":"private provider detail","type":"test_error","code":"test_code"}}'
+            ),
+        )
+
+    monkeypatch.setitem(app.config, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr("app.generate_chatbot_answer", fail_to_generate)
+    with app.test_client() as client:
+        response = client.post(
+            "/api/chatbot",
+            json={"message": "What is a found-item report?"},
+        )
+
+    data = response.get_json()
+    assert response.status_code == 503
+    assert expected_message in data["answer"]
+    assert "private provider detail" not in data["answer"]
 
 
 def test_openai_chatbot_request_uses_configured_model_and_prompt(monkeypatch):

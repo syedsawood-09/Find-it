@@ -1117,9 +1117,32 @@ def chatbot():
     try:
         answer = generate_chatbot_answer(message, conversation_history, language)
     except urllib.error.HTTPError as error:
-        app.logger.warning("OpenAI chatbot request failed with HTTP status %s", error.code)
+        try:
+            provider_error = json.loads(error.read().decode("utf-8")).get("error", {})
+        except (AttributeError, UnicodeDecodeError, json.JSONDecodeError):
+            provider_error = {}
+        if not isinstance(provider_error, dict):
+            provider_error = {}
+        error_type = provider_error.get("type")
+        error_code = provider_error.get("code")
+        app.logger.warning(
+            "OpenAI chatbot request failed with HTTP status %s (type=%s, code=%s)",
+            error.code,
+            error_type,
+            error_code,
+        )
+        if error.code == 401:
+            answer = "OpenAI rejected the API key. Check that OPENAI_API_KEY is active and correctly configured in Render, then redeploy."
+        elif error.code == 403:
+            answer = "OpenAI denied access. Check the API project's permissions and access to the configured model."
+        elif error.code == 404:
+            answer = "OpenAI could not find the configured model. Check OPENAI_MODEL in Render; the default is gpt-4o-mini."
+        elif error.code == 429:
+            answer = "OpenAI rate limits or billing quota blocked this request. Check the API project's usage limits and billing."
+        else:
+            answer = "OpenAI is temporarily unavailable. Please try again shortly."
         return jsonify(
-            answer="The AI assistant couldn't answer right now. Check the OpenAI API key and model configuration, then try again.",
+            answer=answer,
             items=[],
         ), 503
     except (OSError, TimeoutError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
