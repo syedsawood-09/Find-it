@@ -49,6 +49,7 @@ const chatTranslations = {
     welcome: "Hi! What would you like help with today? I can help report a lost item, find found items, start a claim, or locate the office.",
     lostId: "Lost ID", claim: "Claim item", phones: "Found phones", office: "Office location",
     placeholder: "Ask about lost and found...", send: "Send",
+    unavailable: "I couldn't reach the assistant service just now. Please try again.",
     privacy: "General AI questions may be sent to OpenAI. Private claim evidence is never sent.",
     where: "Where did you last have or see this item before you lost it?",
     when: "When did you lose it? A date or approximate time is helpful.",
@@ -61,6 +62,7 @@ const chatTranslations = {
     welcome: "ನಮಸ್ಕಾರ! ಇಂದು ನಿಮಗೆ ಏನು ಸಹಾಯ ಬೇಕು? ಕಳೆದುಹೋದ ವಸ್ತು ವರದಿ, ಸಿಕ್ಕಿದ ವಸ್ತು ಹುಡುಕಾಟ, ಕ್ಲೇಮ್ ಅಥವಾ ಕಚೇರಿ ಸ್ಥಳದ ಬಗ್ಗೆ ಸಹಾಯ ಮಾಡುತ್ತೇನೆ.",
     lostId: "ಕಳೆದುಹೋದ ID", claim: "ವಸ್ತು ಕ್ಲೇಮ್", phones: "ಸಿಕ್ಕಿದ ಫೋನ್‌ಗಳು", office: "ಕಚೇರಿ ಸ್ಥಳ",
     placeholder: "ಕಳೆದುಹೋದ ಅಥವಾ ಸಿಕ್ಕಿದ ವಸ್ತು ಬಗ್ಗೆ ಕೇಳಿ...", send: "ಕಳುಹಿಸಿ",
+    unavailable: "ಸಹಾಯಕ ಸೇವೆಯನ್ನು ಈಗ ಸಂಪರ್ಕಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     privacy: "ಸಾಮಾನ್ಯ AI ಪ್ರಶ್ನೆಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ಖಾಸಗಿ ಕ್ಲೇಮ್ ಪುರಾವೆಗಳನ್ನು ಎಂದಿಗೂ ಕಳುಹಿಸುವುದಿಲ್ಲ.",
     where: "ಈ ವಸ್ತು ಕಳೆದುಹೋಗುವ ಮೊದಲು ನೀವು ಅದನ್ನು ಕೊನೆಯಾಗಿ ಎಲ್ಲಿ ಹೊಂದಿದ್ದಿರಿ ಅಥವಾ ನೋಡಿದ್ದಿರಿ?",
     when: "ಈ ವಸ್ತು ಯಾವಾಗ ಕಳೆದುಹೋಯಿತು? ದಿನಾಂಕ ಅಥವಾ ಅಂದಾಜು ಸಮಯ ತಿಳಿಸಿ.",
@@ -73,6 +75,7 @@ const chatTranslations = {
     welcome: "नमस्ते! आज आपको किस बात में मदद चाहिए? मैं खोई वस्तु की रिपोर्ट, मिली वस्तु की खोज, दावा या कार्यालय का स्थान बताने में मदद कर सकता हूँ।",
     lostId: "खोया ID", claim: "वस्तु पर दावा", phones: "मिले फोन", office: "कार्यालय का स्थान",
     placeholder: "खोई या मिली वस्तु के बारे में पूछें...", send: "भेजें",
+    unavailable: "अभी सहायक सेवा से संपर्क नहीं हो सका। कृपया फिर से कोशिश करें।",
     privacy: "सामान्य AI प्रश्न OpenAI को भेजे जा सकते हैं। निजी दावा प्रमाण कभी नहीं भेजे जाते।",
     where: "खोने से पहले आपने इस वस्तु को आखिरी बार कहाँ रखा या देखा था?",
     when: "यह वस्तु कब खोई थी? तारीख या अनुमानित समय बताएँ।",
@@ -415,12 +418,19 @@ function sendChatMessage() {
     return;
   }
   if (chatFlow === 'claim-confirm') {
-    if (/^(yes|yes, submit|submit|confirm)$/i.test(value)) {
+    const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
+    const normalizedValue = value.trim().toLocaleLowerCase();
+    if (
+      normalizedValue === language.yes.toLocaleLowerCase() ||
+      /^(yes|yes, submit|submit|confirm)$/i.test(value.trim())
+    ) {
       submitChatClaim();
-    } else if (/^(no|cancel|no, cancel)$/i.test(value)) {
+    } else if (
+      normalizedValue === language.cancel.toLocaleLowerCase() ||
+      /^(no|cancel|no, cancel)$/i.test(value.trim())
+    ) {
       cancelChatClaim();
     } else {
-      const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
       addMessage(formatChatText(language.confirmPrompt, {yes: language.yes, cancel: language.cancel}), 'bot');
     }
     return;
@@ -442,6 +452,9 @@ async function sendChatQuery(text, flow = chatFlow, itemId = null) {
       })
     });
     const data = await response.json();
+    if (!response.ok && !data.answer) {
+      throw new Error(`Chatbot request failed with status ${response.status}`);
+    }
     addMessage(data.answer || 'I could not process that request.');
     if (data.ai_generated && text) {
       aiChatHistory.push(
@@ -478,7 +491,9 @@ async function sendChatQuery(text, flow = chatFlow, itemId = null) {
       box.scrollTop = box.scrollHeight;
     });
   } catch (error) {
-    addMessage('The item search is temporarily unavailable. Please try Browse Items.');
+    console.warn('FindIt chatbot request failed:', error);
+    const language = chatTranslations[getActiveLanguageCode()] || chatTranslations.en;
+    addMessage(language.unavailable);
   }
 }
 
