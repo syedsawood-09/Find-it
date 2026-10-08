@@ -20,7 +20,7 @@ This project uses the user's supplied FindIt frontend as the homepage and adds a
 
 Item matching combines category, color, brand, location, date/time, description, and image similarity. Perceptual-hash similarity works locally; when an OpenAI key is configured, AI vision also compares resized public report photos to rank likely visual matches. Public item report images are sent to OpenAI for this comparison; private claim evidence is never sent.
 
-The AI chatbot answers general questions using OpenAI, retains recent AI conversation context, and guides users through lost/found reports and claims. A persistent language selector switches the chatbot, shared navigation, landing-page copy, and common report/claim controls between English, Kannada, and Hindi; user-entered report content stays as submitted. Set the campus office location to provide a verified answer.
+The AI chatbot answers general questions using Google's Gemini API, retains recent AI conversation context, and guides users through lost/found reports and claims. Chat messages sent for general AI answers are processed by Google; item search and guided report/claim workflows remain local. A persistent language selector switches the chatbot, shared navigation, landing-page copy, and common report/claim controls between English, Kannada, and Hindi; user-entered report content stays as submitted. Set the campus office location to provide a verified answer.
 
 When security or an administrator records a handover, FindIt requires the receiver's name and confirmation, logs the authorized staff member, and creates a printable handover receipt with the item ID, receiver, confirmation, and timestamp.
 
@@ -48,8 +48,10 @@ Administrators can assign `user`, `staff`, `security`, or `admin` roles from the
 Optional configuration uses environment variables (do not commit credentials):
 - `SECRET_KEY`: persistent random secret for signed sessions; without it, sessions reset whenever the app restarts.
 - `LOST_FOUND_OFFICE`: verified campus office location shown by the assistant.
-- `OPENAI_API_KEY`: enables AI-generated answers for general chatbot questions. Chat messages sent for AI answers are processed by OpenAI; item search and guided report/claim workflows remain local.
-- `OPENAI_MODEL`: OpenAI chat model name (defaults to `gpt-4o-mini`).
+- `GEMINI_API_KEY`: Google AI Studio API key used for general chatbot answers. Add it to the hosting provider's secret/environment settings, not the repository.
+- `GEMINI_MODEL`: Gemini chat model (defaults to `gemini-2.5-flash`).
+- `OPENAI_API_KEY`: optional key used only for AI visual comparisons of public report photos; it is not used by the chatbot.
+- `OPENAI_MODEL`: OpenAI vision model name (defaults to `gpt-4o-mini`).
 - `AI_IMAGE_MATCHING`: set to `false` to disable OpenAI visual comparisons and use local perceptual hashes only.
 - `PUBLIC_BASE_URL`: externally reachable site URL (for example, the campus-hosted URL) embedded in QR codes; localhost QR codes only work on the same device.
 - `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SENDER`, `MAIL_USE_TLS`: SMTP delivery for claim, match, and handover emails. In-system notifications work without SMTP.

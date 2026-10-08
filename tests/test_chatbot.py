@@ -75,7 +75,7 @@ def test_chatbot_uses_ai_for_general_questions(monkeypatch):
         captured["language"] = language
         return "A found-item report records something you picked up and turned in."
 
-    monkeypatch.setitem(app.config, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setitem(app.config, "GEMINI_API_KEY", "test-key")
     monkeypatch.setattr("app.generate_chatbot_answer", fake_generate_answer)
     with app.test_client() as client:
         response = client.post(
@@ -137,7 +137,7 @@ def test_chatbot_guides_hindi_and_kannada_report_questions_without_ai():
 
 
 def test_chatbot_reports_missing_ai_configuration(monkeypatch):
-    monkeypatch.setitem(app.config, "OPENAI_API_KEY", "")
+    monkeypatch.setitem(app.config, "GEMINI_API_KEY", "")
     with app.test_client() as client:
         response = client.post(
             "/api/chatbot",
@@ -145,17 +145,17 @@ def test_chatbot_reports_missing_ai_configuration(monkeypatch):
         )
 
     assert response.status_code == 503
-    assert "OPENAI_API_KEY" in response.get_json()["answer"]
+    assert "GEMINI_API_KEY" in response.get_json()["answer"]
 
 
 @pytest.mark.parametrize(
     ("status", "expected_message"),
     [
-        (401, "OpenAI rejected the API key"),
-        (403, "OpenAI denied access"),
-        (404, "could not find the configured model"),
-        (429, "billing quota blocked this request"),
-        (500, "OpenAI is temporarily unavailable"),
+        (401, "Gemini rejected the request"),
+        (403, "Gemini denied access"),
+        (404, "Gemini could not find the configured model"),
+        (429, "Gemini rate limits or API quota blocked this request"),
+        (500, "Gemini is temporarily unavailable"),
     ],
 )
 def test_chatbot_explains_openai_http_errors(monkeypatch, status, expected_message):
@@ -170,7 +170,7 @@ def test_chatbot_explains_openai_http_errors(monkeypatch, status, expected_messa
             ),
         )
 
-    monkeypatch.setitem(app.config, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setitem(app.config, "GEMINI_API_KEY", "test-key")
     monkeypatch.setattr("app.generate_chatbot_answer", fail_to_generate)
     with app.test_client() as client:
         response = client.post(
@@ -184,7 +184,7 @@ def test_chatbot_explains_openai_http_errors(monkeypatch, status, expected_messa
     assert "private provider detail" not in data["answer"]
 
 
-def test_openai_chatbot_request_uses_configured_model_and_prompt(monkeypatch):
+def test_gemini_chatbot_request_uses_configured_model_and_prompt(monkeypatch):
     captured = {}
 
     class FakeResponse:
@@ -204,8 +204,8 @@ def test_openai_chatbot_request_uses_configured_model_and_prompt(monkeypatch):
         captured["payload"] = request.data.decode("utf-8")
         return FakeResponse()
 
-    monkeypatch.setitem(app.config, "OPENAI_API_KEY", "test-key")
-    monkeypatch.setitem(app.config, "OPENAI_MODEL", "test-model")
+    monkeypatch.setitem(app.config, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setitem(app.config, "GEMINI_MODEL", "test-model")
     monkeypatch.setattr("app.urllib.request.urlopen", fake_urlopen)
 
     answer = generate_chatbot_answer(
@@ -215,10 +215,12 @@ def test_openai_chatbot_request_uses_configured_model_and_prompt(monkeypatch):
     )
 
     assert answer == "Here is a helpful answer."
-    assert captured["url"] == "https://api.openai.com/v1/chat/completions"
+    assert captured["url"] == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     assert captured["authorization"] == "Bearer test-key"
     assert captured["timeout"] == 15
+    assert captured["authorization"] == "Bearer " + app.config["GEMINI_API_KEY"]
     assert '"model": "test-model"' in captured["payload"]
+    assert '"max_tokens": 450' in captured["payload"]
     assert "Respond in Kannada" in captured["payload"]
     assert "I found a backpack." in captured["payload"]
 

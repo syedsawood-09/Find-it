@@ -29,6 +29,8 @@ app.config["PRIVATE_UPLOAD_FOLDER"] = os.environ.get(
 )
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 app.config["LOST_FOUND_OFFICE"] = os.environ.get("LOST_FOUND_OFFICE", "")
+app.config["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY", "")
+app.config["GEMINI_MODEL"] = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 app.config["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "")
 app.config["OPENAI_MODEL"] = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 app.config["AI_IMAGE_MATCHING"] = os.environ.get("AI_IMAGE_MATCHING", "true").lower() == "true"
@@ -121,7 +123,7 @@ CHATBOT_TRANSLATIONS = {
         "office-missing": "The campus office location is not configured. Please ask Security or an administrator for the verified location.",
         "match-found": "Here are found reports that may match:",
         "match-none": "I couldn't find a matching found report yet. Try Browse Items or submit a lost report to receive match alerts.",
-        "ai-missing": "AI answers aren't configured yet. Set the OPENAI_API_KEY environment variable, then restart FindIt. I can still help with item search and guided reports or claims.",
+        "ai-missing": "AI answers aren't configured yet. Set the GEMINI_API_KEY environment variable in your hosting settings, then restart FindIt. I can still help with item search and guided reports or claims.",
     },
     "kn": {
         "claim-search": "ನೀವು ಯಾವ ಸಿಕ್ಕಿದ ವಸ್ತುವನ್ನು ಕ್ಲೇಮ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಿ? ಅದರ ಹೆಸರು ಅಥವಾ ಪ್ರಕಾರವನ್ನು ತಿಳಿಸಿ.",
@@ -140,7 +142,7 @@ CHATBOT_TRANSLATIONS = {
         "office-missing": "ಕ್ಯಾಂಪಸ್ ಕಚೇರಿಯ ಸ್ಥಳವನ್ನು ಇನ್ನೂ ಹೊಂದಿಸಲಾಗಿಲ್ಲ. ದೃಢೀಕೃತ ಸ್ಥಳಕ್ಕಾಗಿ ಭದ್ರತಾ ಸಿಬ್ಬಂದಿ ಅಥವಾ ನಿರ್ವಾಹಕರನ್ನು ಸಂಪರ್ಕಿಸಿ.",
         "match-found": "ಹೊಂದಾಣಿಕೆಯಾಗಬಹುದಾದ ಸಿಕ್ಕಿದ ವರದಿಗಳು ಇಲ್ಲಿವೆ:",
         "match-none": "ಹೊಂದುವ ಸಿಕ್ಕಿದ ವರದಿ ಸಿಗಲಿಲ್ಲ. ಸಿಕ್ಕಿದ ವಸ್ತುಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ ಅಥವಾ ಕಳೆದುಹೋದ ವರದಿ ಸಲ್ಲಿಸಿ.",
-        "ai-missing": "AI ಉತ್ತರಗಳನ್ನು ಇನ್ನೂ ಹೊಂದಿಸಲಾಗಿಲ್ಲ. OPENAI_API_KEY ಹೊಂದಿಸಿ FindIt ಅನ್ನು ಮರುಪ್ರಾರಂಭಿಸಿ. ವಸ್ತು ಹುಡುಕಾಟ ಮತ್ತು ವರದಿ/ಕ್ಲೇಮ್ ಮಾರ್ಗದರ್ಶನ ಇನ್ನೂ ಲಭ್ಯವಿದೆ.",
+        "ai-missing": "AI ಉತ್ತರಗಳನ್ನು ಇನ್ನೂ ಹೊಂದಿಸಲಾಗಿಲ್ಲ. ಹೋಸ್ಟಿಂಗ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ GEMINI_API_KEY ಹೊಂದಿಸಿ FindIt ಅನ್ನು ಮರುಪ್ರಾರಂಭಿಸಿ. ವಸ್ತು ಹುಡುಕಾಟ ಮತ್ತು ವರದಿ/ಕ್ಲೇಮ್ ಮಾರ್ಗದರ್ಶನ ಇನ್ನೂ ಲಭ್ಯವಿದೆ.",
     },
     "hi": {
         "claim-search": "आप किस मिली हुई वस्तु पर दावा करना चाहते हैं? उसका नाम या प्रकार बताइए।",
@@ -159,7 +161,7 @@ CHATBOT_TRANSLATIONS = {
         "office-missing": "कैंपस कार्यालय का स्थान अभी सेट नहीं है। सही स्थान के लिए सुरक्षा कर्मी या प्रशासक से पूछें।",
         "match-found": "ये मिली हुई रिपोर्टें आपकी वस्तु से मेल खा सकती हैं:",
         "match-none": "मिलती-जुलती मिली हुई रिपोर्ट नहीं मिली। मिली हुई वस्तुएँ देखें या खोई हुई वस्तु की रिपोर्ट जमा करें।",
-        "ai-missing": "AI जवाब अभी सेट नहीं हैं। OPENAI_API_KEY सेट करके FindIt को फिर शुरू करें। वस्तु खोज और रिपोर्ट/दावे का मार्गदर्शन फिर भी उपलब्ध है।",
+        "ai-missing": "AI जवाब अभी सेट नहीं हैं। होस्टिंग सेटिंग में GEMINI_API_KEY सेट करके FindIt को फिर शुरू करें। वस्तु खोज और रिपोर्ट/दावे का मार्गदर्शन फिर भी उपलब्ध है।",
     },
 }
 
@@ -301,7 +303,7 @@ def send_email_notification(recipient, subject, body):
 
 
 def generate_chatbot_answer(message, conversation_history=None, language="en"):
-    api_key = app.config["OPENAI_API_KEY"]
+    api_key = app.config["GEMINI_API_KEY"]
     if not api_key:
         return None
     language_name = {"en": "English", "kn": "Kannada", "hi": "Hindi"}.get(language, "English")
@@ -334,12 +336,12 @@ def generate_chatbot_answer(message, conversation_history=None, language="en"):
             })
     messages.append({"role": "user", "content": message})
     payload = json.dumps({
-        "model": app.config["OPENAI_MODEL"],
+        "model": app.config["GEMINI_MODEL"],
         "messages": messages,
-        "max_completion_tokens": 450,
+        "max_tokens": 450,
     }).encode("utf-8")
     api_request = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
+        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         data=payload,
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -347,12 +349,13 @@ def generate_chatbot_answer(message, conversation_history=None, language="en"):
         },
         method="POST",
     )
+    api_request.add_header("Authorization", "Bearer " + api_key)
     with urllib.request.urlopen(api_request, timeout=15) as response:
         result = json.loads(response.read().decode("utf-8"))
 
     answer = result["choices"][0]["message"]["content"]
     if not isinstance(answer, str) or not answer.strip():
-        raise ValueError("OpenAI returned an empty chatbot response")
+        raise ValueError("Gemini returned an empty chatbot response")
     return answer.strip()
 
 
@@ -1109,7 +1112,7 @@ def chatbot():
             else chatbot_text("match-none", language)
         )
         return jsonify(answer=answer, items=items)
-    if not app.config["OPENAI_API_KEY"]:
+    if not app.config["GEMINI_API_KEY"]:
         return jsonify(
             answer=chatbot_text("ai-missing", language),
             items=[],
@@ -1126,27 +1129,27 @@ def chatbot():
         error_type = provider_error.get("type")
         error_code = provider_error.get("code")
         app.logger.warning(
-            "OpenAI chatbot request failed with HTTP status %s (type=%s, code=%s)",
+            "Gemini chatbot request failed with HTTP status %s (type=%s, code=%s)",
             error.code,
             error_type,
             error_code,
         )
-        if error.code == 401:
-            answer = "OpenAI rejected the API key. Check that OPENAI_API_KEY is active and correctly configured in Render, then redeploy."
+        if error.code in (400, 401):
+            answer = "Gemini rejected the request. Check that GEMINI_API_KEY is valid and GEMINI_MODEL is supported in Render."
         elif error.code == 403:
-            answer = "OpenAI denied access. Check the API project's permissions and access to the configured model."
+            answer = "Gemini denied access. Check the API key, project permissions, and access to the configured model."
         elif error.code == 404:
-            answer = "OpenAI could not find the configured model. Check OPENAI_MODEL in Render; the default is gpt-4o-mini."
+            answer = "Gemini could not find the configured model. Check GEMINI_MODEL in Render; the default is gemini-2.5-flash."
         elif error.code == 429:
-            answer = "OpenAI rate limits or billing quota blocked this request. Check the API project's usage limits and billing."
+            answer = "Gemini rate limits or API quota blocked this request. Check your Google AI Studio project limits and billing."
         else:
-            answer = "OpenAI is temporarily unavailable. Please try again shortly."
+            answer = "Gemini is temporarily unavailable. Please try again shortly."
         return jsonify(
             answer=answer,
             items=[],
         ), 503
     except (OSError, TimeoutError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-        app.logger.warning("OpenAI chatbot request failed: %s", error)
+        app.logger.warning("Gemini chatbot request failed: %s", error)
         return jsonify(
             answer="The AI assistant is temporarily unavailable. Please try again in a moment.",
             items=[],
