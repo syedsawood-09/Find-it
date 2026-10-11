@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% block title %}AI Lost Item Detective | FindIt{% endblock %}
+{% block content %}
+<section class="page-shell detective-page">
+  <section class="hero-panel">
+    <div>
+      <p class="eyebrow">A guided search investigation</p>
+      <h1>FindIt AI Lost Item Detective</h1>
+      <p>Answer a few questions one at a time, then review a personal search plan based only on what you tell us.</p>
+    </div>
+    <span class="chip">No background tracking</span>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Your investigation</h2>
+        <p>Skip anything you are unsure about. You can review or change your answers before generating suggestions.</p>
+      </div>
+      <span class="chip">Private by default</span>
+    </div>
+    {% if error %}<p class="flash" role="alert">{{ error }}</p>{% endif %}
+    <p class="flash"><strong>How suggestions work:</strong> local rules rank your answers by default. If Gemini is configured, you may separately opt in to send your answers to Google for a tie-break between suggestions at the same priority. Gemini cannot add places or override High/Medium/Low levels. Suggestions are estimates, never confirmed locations or probabilities.</p>
+
+    <form method="post" action="{{ url_for('lost_item_detective') }}" id="detectiveForm">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="source_item_id" value="{{ source_item_id or '' }}">
+
+      <div id="detective-wizard" {% if investigation_complete %}hidden{% endif %}>
+        <div class="detective-progress" aria-live="polite">
+          <span id="detective-step-count"></span>
+          <progress id="detective-progress" max="1" value="1"></progress>
+        </div>
+
+        <section class="detective-question" data-detective-step>
+          <p class="eyebrow">Start here</p>
+          <h3>Which report are we investigating?</h3>
+          {% if session.get('user_id') %}
+          <label for="detective-report">Choose one of your lost reports, or start a new investigation</label>
+          <select id="detective-report">
+            <option value="" {% if not source_item_id %}selected{% endif %}>New investigation</option>
+            {% for report in lost_reports %}
+            <option value="{{ report.id }}" {% if source_item_id == report.id %}selected{% endif %}>
+              {{ report.item_name }}{% if report.city or report.state %} — {{ report.city }}{% if report.city and report.state %}, {% endif %}{{ report.state }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+          {% if not lost_reports %}<small>You do not have a lost report yet. Start an investigation now; you can create a report after reviewing the plan.</small>{% else %}<small>Selecting an existing report pre-fills its details and your own Memory Map entries. You can edit every answer.</small>{% endif %}
+          {% else %}
+          <p>You can start a new investigation now. Sign in to prefill one of your lost reports or save your plan.</p>
+          {% endif %}
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label for="detective-item-name">What item is missing?</label>
+          <input id="detective-item-name" name="item_name" maxlength="150" value="{{ detective_input.get('item_name','') }}" placeholder="For example, headphones">
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label for="detective-category">What kind of item is it?</label>
+          <select id="detective-category" name="category">
+            <option value="">Not sure / skip</option>
+            {% for category in ['Electronics','Documents','Wallet','Keys','Bag','Books','Other'] %}
+            <option value="{{ category }}" {% if detective_input.get('category') == category %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+          </select>
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label for="detective-description">What details help identify it?</label>
+          <textarea id="detective-description" name="description" maxlength="1000" placeholder="Only include details you actually know, such as color or a distinctive feature.">{{ detective_input.get('description','') }}</textarea>
+          <small>This information is used to tailor suggestions; it is not proof of ownership.</small>
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label id="detective-last-seen-question" for="detective-last-seen">When did you last see the item?</label>
+          <input id="detective-last-seen" name="last_seen" type="datetime-local" value="{{ detective_input.get('last_seen','') }}">
+          <small>Approximate time is fine. Skip if you do not remember.</small>
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label id="detective-last-location-question" for="detective-last-location">Where did you last see the item?</label>
+          <input id="detective-last-location" name="last_location" maxlength="180" value="{{ detective_input.get('last_location','') }}" placeholder="For example, the college library or a bus station">
+          <small>Use a public venue or broad area; do not enter a home address or sensitive exact location.</small>
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label id="detective-last-used-question" for="detective-last-used">Where or while doing what did you last use the item?</label>
+          <input id="detective-last-used" name="last_used" maxlength="300" value="{{ detective_input.get('last_used','') }}" placeholder="For example, used my headphones in the library">
+          <small>Optional. Do not guess if you are unsure.</small>
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label id="detective-places-question">Which places did you visit after last seeing the item?</label>
+          <div id="detectivePlaces">
+            {% for place in detective_input.get('places', []) %}
+            <div class="detective-place-row">
+              <input name="places" maxlength="180" value="{{ place }}" aria-label="Visited place {{ loop.index }}" placeholder="A place you actually visited">
+              <button class="btn secondary detective-remove-place" type="button" aria-label="Remove visited place">Remove</button>
+            </div>
+            {% endfor %}
+            {% if not detective_input.get('places') %}
+            <div class="detective-place-row">
+              <input name="places" maxlength="180" aria-label="Visited place 1" placeholder="A place you actually visited">
+              <button class="btn secondary detective-remove-place" type="button" aria-label="Remove visited place">Remove</button>
+            </div>
+            {% endif %}
+          </div>
+          <button class="btn secondary" type="button" id="detectiveAddPlace">+ Add another place</button>
+          <small>Enter them in the order you remember. Add up to eight; do not include places you did not visit.</small>
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <label id="detective-travel-question" for="detective-travel">How did you travel after last seeing the item, if relevant?</label>
+          <select id="detective-travel" name="travel_method">
+            {% for method in ['', 'Bus', 'Train', 'Metro', 'Taxi / cab', 'Auto-rickshaw', 'Car', 'Flight', 'Walk / bicycle', 'Other'] %}
+            <option value="{{ method }}" {% if detective_input.get('travel_method','') == method %}selected{% endif %}>{{ method or 'Not applicable / not sure' }}</option>
+            {% endfor %}
+          </select>
+        </section>
+
+        <section class="detective-question" data-detective-step>
+          <div class="grid">
+            <div>
+              <label for="detective-city">Which city were you in? <span class="muted-link">(optional)</span></label>
+              <input id="detective-city" name="city" maxlength="100" value="{{ detective_input.get('city','') }}" placeholder="For example, Pune">
+            </div>
+            <div>
+              <label for="detective-state">State / union territory <span class="muted-link">(optional)</span></label>
+              <input id="detective-state" name="state" maxlength="100" value="{{ detective_input.get('state','') }}" placeholder="For example, Maharashtra">
+            </div>
+          </div>
+          <p>That is all the questions. Review your answers on the next step before generating your search plan.</p>
+        </section>
+
+        <div class="detective-controls">
+          <button class="btn secondary" type="button" id="detectiveBack">Back</button>
+          <button class="btn" type="button" id="detectiveNext">Continue</button>
+        </div>
+
+        <section class="detective-review" id="detectiveReview" hidden>
+          <h3>Review your answers</h3>
+          <dl id="detectiveAnswerSummary" class="detective-answer-summary"></dl>
+          {% if session.get('user_id') %}
+          <label class="detective-consent">
+            <input type="checkbox" name="save_plan">
+            Save this investigation and checklist privately to my account
+          </label>
+          <small>Optional and unchecked by default. You can reopen, update, or delete saved investigations.</small>
+          {% else %}
+          <p><small>Sign in to save an investigation. Nothing is stored from this session.</small></p>
+          {% endif %}
+          {% if has_gemini %}
+          <label class="detective-consent">
+            <input type="checkbox" name="use_ai_ranking">
+            I consent to send these answers to Google's Gemini API for a limited ranking assist
+          </label>
+          <small>Unchecked by default. Gemini can only reorder suggestions within the same priority level. It cannot create venues, addresses, or new suggestions. Google's processing is subject to Google's terms and privacy policy.</small>
+          {% else %}
+          <p><small>Optional Gemini ranking is unavailable because GEMINI_API_KEY is not configured. Your local search plan works without it.</small></p>
+          {% endif %}
+          <div class="detective-controls">
+            <button class="btn secondary" type="button" id="detectiveEdit">Edit answers</button>
+            <button class="btn" type="submit">Generate my search plan</button>
+          </div>
+        </section>
+      </div>
+    </form>
+
+    {% if investigation_complete %}
+    <div id="detective-results" aria-live="polite">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">{{ 'Saved private investigation' if saved_plan_id else 'Investigation complete' }}</p>
+          <h2>Your answers and search plan</h2>
+        </div>
+        <span class="chip">{{ recommendations|length }} suggested places</span>
+      </div>
+      <p><strong>Recommendation method:</strong> {{ recommendation_method }}</p>
+      {% if ai_error %}<p class="flash" role="status">{{ ai_error }}</p>{% endif %}
+      <dl class="detective-answer-summary">
+        <dt>Item</dt><dd>{{ detective_input.get('item_name') or 'Not provided' }}{% if detective_input.get('category') %} — {{ detective_input.get('category') }}{% endif %}</dd>
+        <dt>Description</dt><dd>{{ detective_input.get('description') or 'Not provided' }}</dd>
+        <dt>Last seen</dt><dd>{{ detective_input.get('last_seen') or 'Not provided' }}{% if detective_input.get('last_location') %} at {{ detective_input.get('last_location') }}{% endif %}</dd>
+        <dt>Last used</dt><dd>{{ detective_input.get('last_used') or 'Not provided' }}</dd>
+        <dt>Visited afterward</dt><dd>{{ detective_input.get('places')|join(', ') or 'Not provided' }}</dd>
+        <dt>Travel</dt><dd>{{ detective_input.get('travel_method') or 'Not provided' }}</dd>
+        <dt>City</dt><dd>{{ [detective_input.get('city'), detective_input.get('state')]|select|join(', ') or 'Not provided' }}</dd>
+      </dl>
+      <p>{{ notice }}</p>
+      {% if insufficient %}
+      <p class="flash">There is not enough detail for specific suggestions. Add the item type and a last-seen place or a place visited, then update your answers. General guidance is labeled below.</p>
+      {% endif %}
+      <ol class="detective-recommendations">
+        {% for recommendation in recommendations %}
+        <li>
+          <article class="card">
+            <div class="panel-header">
+              <h3>{{ recommendation.place }}</h3>
+              <span class="chip">{{ recommendation.priority }} priority</span>
+            </div>
+            {% if recommendation.general %}<span class="chip">General place type</span>{% endif %}
+            <p><strong>Why suggested:</strong> {{ recommendation.reason }}</p>
+            <p><strong>Next action:</strong> {{ recommendation.next_action }}</p>
+            {% if saved_plan_id %}
+            <form method="post" action="{{ url_for('update_location_prediction_step', plan_id=saved_plan_id, step_index=loop.index0) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <label for="detective-status-{{ loop.index }}">Checklist status</label>
+              <div class="detective-controls">
+                <select id="detective-status-{{ loop.index }}" name="status">
+                  {% for status in check_statuses %}
+                  <option value="{{ status }}" {% if recommendation.status == status %}selected{% endif %}>{{ status }}</option>
+                  {% endfor %}
+                </select>
+                <button class="btn secondary" type="submit">Update status</button>
+              </div>
+            </form>
+            {% else %}
+            <label for="detective-local-status-{{ loop.index }}">Checklist status</label>
+            <select id="detective-local-status-{{ loop.index }}" data-detective-local-status>
+              {% for status in check_statuses %}
+              <option value="{{ status }}" {% if recommendation.status == status %}selected{% endif %}>{{ status }}</option>
+              {% endfor %}
+            </select>
+            <small>Progress is not saved unless you opt in to save this plan.</small>
+            {% endif %}
+          </article>
+        </li>
+        {% endfor %}
+      </ol>
+      <div class="detective-controls">
+        <button class="btn secondary" type="button" id="detectiveChangeAnswers">Update answers and regenerate</button>
+        {% if source_item_id %}
+        <a class="btn secondary" href="{{ url_for('item_detail', item_id=source_item_id) }}">Return to your Lost report</a>
+        {% elif session.get('user_id') %}
+        {% set seen_parts = detective_input.get('last_seen','').split('T') %}
+        <a class="btn secondary" href="{{ url_for('report', item_type='Lost', item_name=detective_input.get('item_name',''), category=detective_input.get('category','Other'), description=detective_input.get('description',''), location=detective_input.get('last_location',''), event_date=seen_parts[0], event_time=seen_parts[1] if seen_parts|length > 1 else '', city=detective_input.get('city',''), state=detective_input.get('state','')) }}">Continue to create a Lost report</a>
+        {% else %}
+        <a class="btn secondary" href="{{ url_for('login') }}">Sign in to create a Lost report</a>
+        {% endif %}
+        <a class="btn secondary" href="{{ url_for('items', q=detective_input.get('item_name',''), city=detective_input.get('city',''), state=detective_input.get('state',''), smart='1') }}">Search FindIt reports</a>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  {% if saved_plans %}
+  <section class="panel">
+    <h2>Your saved private investigations</h2>
+    <div class="grid">
+      {% for plan in saved_plans %}
+      <article class="card">
+        <strong>{{ plan.item_name }}</strong>
+        <p><small>{{ plan.created_at }}</small></p>
+        <p><a class="muted-link" href="{{ url_for('lost_item_detective', saved=plan.id) }}">Open investigation</a></p>
+        <form method="post" action="{{ url_for('delete_location_prediction_plan', plan_id=plan.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button class="btn secondary" type="submit">Delete investigation</button>
+        </form>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</section>
+<style>
+.detective-page{max-width:900px;margin:0 auto}
+.detective-progress{display:flex;align-items:center;gap:14px;margin:4px 0 20px;color:var(--muted);font-weight:700}
+.detective-progress progress{width:min(260px,55%);accent-color:var(--primary)}
+.detective-question{min-height:190px;padding:24px 0}
+.detective-question h3{font-size:1.35rem}
+.detective-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+.detective-controls select{flex:1;min-width:200px}
+.detective-place-row{display:flex;gap:10px;margin:8px 0}
+.detective-place-row input{min-width:0}
+.detective-place-row button{white-space:nowrap}
+.detective-review{border-top:1px solid var(--line);margin-top:24px;padding-top:20px}
+.detective-answer-summary{display:grid;grid-template-columns:minmax(120px, .35fr) 1fr;gap:8px 14px;margin:18px 0}
+.detective-answer-summary dt{font-weight:800}
+.detective-answer-summary dd{margin:0;overflow-wrap:anywhere}
+.detective-consent{display:flex;align-items:center;gap:10px}
+.detective-consent input{width:auto}
+.detective-recommendations{padding-left:24px}
+.detective-recommendations li{padding:0 0 16px 4px}
+.detective-recommendations .card{padding:18px}
+@media(max-width:600px){.detective-question{min-height:160px}.detective-answer-summary{grid-template-columns:1fr;gap:3px}.detective-answer-summary dd{margin-bottom:10px}.detective-place-row{align-items:flex-start}.detective-place-row button{padding:10px}.detective-controls>.btn{width:100%;text-align:center}}
+</style>
+<script>
+(() => {
+  const form = document.getElementById('detectiveForm');
+  const wizard = document.getElementById('detective-wizard');
+  if (!form || !wizard) return;
+  const steps = Array.from(wizard.querySelectorAll('[data-detective-step]'));
+  const review = document.getElementById('detectiveReview');
+  const next = document.getElementById('detectiveNext');
+  const back = document.getElementById('detectiveBack');
+  const count = document.getElementById('detective-step-count');
+  const progress = document.getElementById('detective-progress');
+  const reportChoice = document.getElementById('detective-report');
+  let index = 0;
+
+  const updateContextualQuestions = () => {
+    const item = form.querySelector('[name="item_name"]').value.trim() || 'the item';
+    document.getElementById('detective-last-seen-question').textContent =
+      `When did you last see ${item}?`;
+    document.getElementById('detective-last-location-question').textContent =
+      `Where were you when you last saw ${item}?`;
+    document.getElementById('detective-last-used-question').textContent =
+      `Where, or while doing what, did you last use ${item}?`;
+    document.getElementById('detective-places-question').textContent =
+      `Which places did you visit after last seeing ${item}?`;
+    document.getElementById('detective-travel-question').textContent =
+      `How did you travel after last seeing ${item}, if relevant?`;
+  };
+
+  const showStep = () => {
+    steps.forEach((step, stepIndex) => { step.hidden = stepIndex !== index; });
+    review.hidden = index < steps.length;
+    back.hidden = index === 0;
+    next.hidden = index >= steps.length;
+    count.textContent = index < steps.length
+      ? `Question ${index + 1} of ${steps.length}`
+      : 'Review before generating';
+    progress.max = steps.length;
+    progress.value = Math.min(index + 1, steps.length);
+    if (index === steps.length) renderSummary();
+  };
+
+  const displayValue = (name) => {
+    const elements = Array.from(form.querySelectorAll(`[name="${name}"]`));
+    if (!elements.length) return 'Not provided';
+    if (name === 'places') {
+      const values = elements.map((field) => field.value.trim()).filter(Boolean);
+      return values.length ? values.join(', ') : 'Not provided';
+    }
+    const field = elements[0];
+    if (field.tagName === 'SELECT') {
+      return field.selectedOptions[0]?.textContent.trim() || 'Not provided';
+    }
+    return field.value.trim() || 'Not provided';
+  };
+
+  function renderSummary() {
+    const summary = document.getElementById('detectiveAnswerSummary');
+    summary.replaceChildren();
+    [
+      ['Item', 'item_name'],
+      ['Category', 'category'],
+      ['Description', 'description'],
+      ['Last seen', 'last_seen'],
+      ['Last known place', 'last_location'],
+      ['Last used', 'last_used'],
+      ['Visited afterward', 'places'],
+      ['Travel method', 'travel_method'],
+      ['City', 'city'],
+      ['State / union territory', 'state']
+    ].forEach(([label, fieldName]) => {
+      const term = document.createElement('dt');
+      const detail = document.createElement('dd');
+      term.textContent = label;
+      detail.textContent = displayValue(fieldName);
+      summary.append(term, detail);
+    });
+  }
+
+  next.addEventListener('click', () => {
+    if (index < steps.length) index += 1;
+    showStep();
+    (index < steps.length ? steps[index].querySelector('input,select,textarea') : review).focus?.();
+  });
+  back.addEventListener('click', () => {
+    if (index > 0) index -= 1;
+    showStep();
+    steps[index].querySelector('input,select,textarea')?.focus();
+  });
+  document.getElementById('detectiveEdit').addEventListener('click', () => {
+    index = Math.max(0, steps.length - 1);
+    showStep();
+    steps[index].querySelector('input,select,textarea')?.focus();
+  });
+
+  const results = document.getElementById('detective-results');
+  document.getElementById('detectiveChangeAnswers')?.addEventListener('click', () => {
+    results.hidden = true;
+    wizard.hidden = false;
+    index = 0;
+    showStep();
+    steps[0].querySelector('select')?.focus();
+  });
+
+  reportChoice?.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.search = '';
+    if (reportChoice.value) url.searchParams.set('item_id', reportChoice.value);
+    window.location.assign(url.toString());
+  });
+  form.querySelector('[name="item_name"]').addEventListener('input', updateContextualQuestions);
+
+  const places = document.getElementById('detectivePlaces');
+  const addPlace = document.getElementById('detectiveAddPlace');
+  const updatePlaces = () => {
+    const rows = places.querySelectorAll('.detective-place-row');
+    rows.forEach((row, placeIndex) => {
+      const input = row.querySelector('input');
+      input.setAttribute('aria-label', `Visited place ${placeIndex + 1}`);
+      row.querySelector('.detective-remove-place').disabled = rows.length <= 1;
+    });
+    addPlace.disabled = rows.length >= 8;
+  };
+  addPlace.addEventListener('click', () => {
+    if (places.querySelectorAll('.detective-place-row').length >= 8) return;
+    const row = document.createElement('div');
+    row.className = 'detective-place-row';
+    const input = document.createElement('input');
+    input.name = 'places';
+    input.maxLength = 180;
+    input.placeholder = 'A place you actually visited';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn secondary detective-remove-place';
+    remove.setAttribute('aria-label', 'Remove visited place');
+    remove.textContent = 'Remove';
+    row.append(input, remove);
+    places.append(row);
+    updatePlaces();
+    updateContextualQuestions();
+    input.focus();
+  });
+  places.addEventListener('click', (event) => {
+    if (event.target.matches('.detective-remove-place') &&
+        places.querySelectorAll('.detective-place-row').length > 1) {
+      event.target.closest('.detective-place-row').remove();
+      updatePlaces();
+    }
+  });
+  document.querySelectorAll('[data-detective-local-status]').forEach((select) => {
+    select.addEventListener('change', () => {
+      select.setAttribute('aria-label', `Checklist status: ${select.value}`);
+    });
+  });
+
+  updatePlaces();
+  if (wizard.hidden) {
+    steps.forEach((step) => { step.hidden = true; });
+    review.hidden = true;
+  } else {
+    showStep();
+  }
+})();
+</script>
+{% endblock %}

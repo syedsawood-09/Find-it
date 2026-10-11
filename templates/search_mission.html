@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Search Mission | FindIt{% endblock %}
+{% block content %}
+<div class="box">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">FindIt Search Missions &amp; Progress Tracker</p>
+      <h1>{{ mission[4] }}</h1>
+      <p>Mission status: <span class="chip">{{ mission[2] }}</span></p>
+    </div>
+    <a class="btn secondary" href="{{ url_for('search_missions') }}">My missions</a>
+  </div>
+  <p>Suggestions are practical estimates based only on your report and the places you entered. FindIt does not track your location or verify whether a task was done.</p>
+  <section class="panel">
+    <div class="panel-header"><h2>Mission progress</h2><strong>{{ completed_count }} completed · {{ not_applicable_count }} not applicable</strong></div>
+    <progress value="{{ progress }}" max="100" aria-label="{{ progress }} percent complete" style="width:100%;height:18px"></progress>
+    <p>{{ remaining_count }} remaining · {{ progress }}% resolved</p>
+  </section>
+
+  <div class="panel-header"><h2>Search checklist</h2></div>
+  {% for task in tasks %}
+  <article class="card" style="padding:16px;margin:12px 0">
+    <form method="post" action="{{ url_for('update_search_mission_task', mission_id=mission[0], task_id=task.id) }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="grid">
+        <div>
+          <label for="title-{{ task.id }}">Task</label>
+          <input id="title-{{ task.id }}" name="title" maxlength="180" required value="{{ task.title }}" {% if mission[2] not in ['Active','Paused'] %}disabled{% endif %}>
+        </div>
+        <div>
+          <label for="priority-{{ task.id }}">Priority</label>
+          <select id="priority-{{ task.id }}" name="priority" {% if mission[2] not in ['Active','Paused'] %}disabled{% endif %}>
+            {% for priority in priorities %}<option value="{{ priority }}" {% if task.priority == priority %}selected{% endif %}>{{ priority }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="status-{{ task.id }}">Status</label>
+          <select id="status-{{ task.id }}" name="status" {% if mission[2] not in ['Active','Paused'] %}disabled{% endif %}>
+            {% for status in task_statuses %}<option value="{{ status }}" {% if task.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <label for="details-{{ task.id }}">Why / next action</label>
+      <textarea id="details-{{ task.id }}" name="details" maxlength="500" {% if mission[2] not in ['Active','Paused'] %}disabled{% endif %}>{{ task.details }}</textarea>
+      {% if mission[2] in ['Active','Paused'] %}
+      <button class="btn secondary" type="submit">Save task</button>
+      {% endif %}
+    </form>
+    {% if mission[2] in ['Active','Paused'] %}
+    <form method="post" action="{{ url_for('delete_search_mission_task', mission_id=mission[0], task_id=task.id) }}" style="margin-top:8px">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button class="btn secondary" type="submit">Remove task</button>
+    </form>
+    {% endif %}
+  </article>
+  {% else %}
+  <div class="empty-state">No tasks remain in this mission. Add a task or complete, archive, or resume your mission.</div>
+  {% endfor %}
+
+  {% if mission[2] in ['Active','Paused'] %}
+  <section class="panel">
+    <h2>Add your own task</h2>
+    <form method="post" action="{{ url_for('add_search_mission_task', mission_id=mission[0]) }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <label for="new-title">Task</label><input id="new-title" name="title" maxlength="180" required>
+      <label for="new-details">Details (optional)</label><textarea id="new-details" name="details" maxlength="500"></textarea>
+      <label for="new-priority">Priority</label>
+      <select id="new-priority" name="priority"><option>High</option><option selected>Medium</option><option>Low</option></select>
+      <button class="btn" type="submit">Add task</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <h2>Mission actions</h2>
+    {% if mission[2] == 'Active' %}
+    <form method="post" action="{{ url_for('update_search_mission_status', mission_id=mission[0]) }}" class="link-row">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button class="btn secondary" name="action" value="pause">Pause mission</button>
+      <button class="btn secondary" name="action" value="complete">Complete mission</button>
+      <button class="btn secondary" name="action" value="archive">Archive mission</button>
+    </form>
+    <form method="post" action="{{ url_for('remind_search_mission', mission_id=mission[0]) }}" style="margin-top:10px">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button class="btn secondary" type="submit">Add one reminder to my FindIt notifications</button>
+      <small>Available at most once per 24 hours; reminders are never sent automatically.</small>
+    </form>
+    {% elif mission[2] == 'Paused' %}
+    <form method="post" action="{{ url_for('update_search_mission_status', mission_id=mission[0]) }}" class="link-row">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button class="btn" name="action" value="resume">Resume mission</button>
+      <button class="btn secondary" name="action" value="complete">Complete mission</button>
+      <button class="btn secondary" name="action" value="archive">Archive mission</button>
+    </form>
+    {% elif mission[2] == 'Completed' %}
+    <form method="post" action="{{ url_for('update_search_mission_status', mission_id=mission[0]) }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button class="btn secondary" name="action" value="archive">Archive mission</button>
+    </form>
+    {% elif mission[2] == 'Successful' %}
+    <p>This report was already returned or recovered through the established FindIt workflow.</p>
+    <form method="post" action="{{ url_for('update_search_mission_status', mission_id=mission[0]) }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button class="btn secondary" name="action" value="archive">Archive mission</button>
+    </form>
+    {% endif %}
+    {% if mission[2] not in ['Successful','Archived'] %}
+      {% if can_mark_success %}
+      <form method="post" action="{{ url_for('update_search_mission_status', mission_id=mission[0]) }}" style="margin-top:10px">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="btn" name="action" value="success">Mark mission successful</button>
+      </form>
+      {% else %}
+      <p>When your item is returned, use the existing staff-verified claim/handover process first. Then you can mark this mission successful.</p>
+      {% endif %}
+    {% endif %}
+    <p><a class="muted-link" href="{{ url_for('item_detail', item_id=mission[1]) }}">Open the related Lost report and recovery workflow</a></p>
+  </section>
+</div>
+{% endblock %}

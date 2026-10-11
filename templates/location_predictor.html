@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}AI Lost Item Location Predictor | FindIt{% endblock %}
+{% block content %}
+<section class="page-shell">
+  <section class="hero-panel">
+    <div>
+      <p class="eyebrow">Practical search guidance</p>
+      <h1>FindIt AI Lost Item Location Predictor</h1>
+      <p>Turn the details you remember into a ranked, editable checklist of places to check.</p>
+    </div>
+    <span class="chip">No background location tracking</span>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>What do you remember?</h2>
+        <p>Only places you enter are used. General place suggestions are labeled; no business, address, or map pin is invented.</p>
+      </div>
+      {% if predictor_input and predictor_input.item_name %}<span class="chip">Item: {{ predictor_input.item_name }}</span>{% endif %}
+    </div>
+
+    {% if error %}<p class="flash" role="alert">{{ error }}</p>{% endif %}
+    {% if predictor_prefilled %}
+    <p class="flash">Prefilled from your own lost report and private Memory Map entries. Review or edit before generating suggestions. Nothing is saved unless you opt in below.</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('location_predictor') }}" id="locationPredictorForm">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="grid">
+        <div>
+          <label for="predictor-item-name">Item name</label>
+          <input id="predictor-item-name" name="item_name" maxlength="150" value="{{ predictor_input.get('item_name','') }}" placeholder="e.g. Wallet">
+        </div>
+        <div>
+          <label for="predictor-category">Category</label>
+          <select id="predictor-category" name="category">
+            <option value="">Choose category (optional)</option>
+            {% for category in ['Electronics','Documents','Wallet','Keys','Bag','Books','Other'] %}
+            <option value="{{ category }}" {% if predictor_input.get('category') == category %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <label for="predictor-description">Item description</label>
+      <textarea id="predictor-description" name="description" maxlength="1000" placeholder="Distinctive details you actually observed, such as color, brand, or a case.">{{ predictor_input.get('description','') }}</textarea>
+
+      <div class="grid">
+        <div>
+          <label for="predictor-last-seen">Date and approximate time last seen <span class="muted-link">(optional)</span></label>
+          <input id="predictor-last-seen" name="last_seen" type="datetime-local" value="{{ predictor_input.get('last_seen','') }}">
+        </div>
+        <div>
+          <label for="predictor-last-location">Last known location <span class="muted-link">(optional)</span></label>
+          <input id="predictor-last-location" name="last_location" maxlength="180" value="{{ predictor_input.get('last_location','') }}" placeholder="e.g. college library or Pune Junction">
+        </div>
+      </div>
+      <p><small>Use a public venue or broad area, not a home address or sensitive exact location.</small></p>
+
+      <label>Places visited after last seeing the item <span class="muted-link">(optional; add up to 8)</span></label>
+      <div id="predictorPlaces">
+        {% set entered_places = predictor_input.get('places', []) %}
+        {% for place in entered_places %}
+        <div class="predictor-place-row" style="display:flex;gap:10px;margin:8px 0">
+          <input name="places" maxlength="180" value="{{ place }}" placeholder="Enter a place you actually visited">
+          <button class="btn secondary remove-place" type="button" aria-label="Remove visited place">Remove</button>
+        </div>
+        {% endfor %}
+        {% if not entered_places %}
+        <div class="predictor-place-row" style="display:flex;gap:10px;margin:8px 0">
+          <input name="places" maxlength="180" placeholder="Enter a place you actually visited">
+          <button class="btn secondary remove-place" type="button" aria-label="Remove visited place">Remove</button>
+        </div>
+        {% endif %}
+      </div>
+      <button class="btn secondary" type="button" id="addPredictorPlace">+ Add another place</button>
+
+      <div class="grid" style="margin-top:12px">
+        <div>
+          <label for="predictor-travel">Travel method <span class="muted-link">(optional)</span></label>
+          <select id="predictor-travel" name="travel_method">
+            {% for method in ['', 'Bus', 'Train', 'Metro', 'Taxi / cab', 'Auto-rickshaw', 'Car', 'Flight', 'Walk / bicycle', 'Other'] %}
+            <option value="{{ method }}" {% if predictor_input.get('travel_method','') == method %}selected{% endif %}>{{ method or 'Not applicable / not sure' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="predictor-city">City <span class="muted-link">(optional)</span></label>
+          <input id="predictor-city" name="city" maxlength="100" value="{{ predictor_input.get('city','') }}" placeholder="e.g. Pune">
+        </div>
+        <div>
+          <label for="predictor-state">State / union territory <span class="muted-link">(optional)</span></label>
+          <input id="predictor-state" name="state" maxlength="100" value="{{ predictor_input.get('state','') }}" placeholder="e.g. Maharashtra">
+        </div>
+      </div>
+
+      <label for="predictor-last-used">Where was it last used? <span class="muted-link">(optional)</span></label>
+      <input id="predictor-last-used" name="last_used" maxlength="300" value="{{ predictor_input.get('last_used','') }}" placeholder="e.g. last used my phone at the café charging point">
+
+      {% if session.get('user_id') %}
+      <label style="display:flex;align-items:center;gap:9px">
+        <input type="checkbox" name="save_plan" style="width:auto">
+        Save this search plan and checklist to my account
+      </label>
+      <small>Unchecked by default. Saved plans are private to your account and can be deleted below.</small>
+      {% else %}
+      <p><small>Sign in to save a plan; you can still generate a checklist without saving it.</small></p>
+      {% endif %}
+      <p style="margin-top:18px"><button class="btn" type="submit">Predict places and build checklist</button></p>
+    </form>
+  </section>
+
+  {% if notice %}
+  <section class="panel" id="prediction-results" aria-live="polite">
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">{{ 'Saved personal plan' if saved_plan_id else 'Search plan' }}</p>
+        <h2>Places to check, in priority order</h2>
+      </div>
+      <span class="chip">{{ recommendations|length }} suggestions</span>
+    </div>
+    <p>{{ notice }}</p>
+    <p><strong>Method:</strong> {{ 'Local rule-based guidance; no external AI service or historical likelihood data is used.' }}</p>
+    {% if insufficient %}
+    <p class="flash">There is not enough detail for a specific recommendation. Add the item type and a last-seen location or a place you visited, then try again. General guidance is labeled below.</p>
+    {% endif %}
+
+    <ol style="padding-left:24px">
+      {% for recommendation in recommendations %}
+      <li style="padding:0 0 16px 4px">
+        <article class="card" style="padding:18px">
+          <div class="panel-header" style="margin-bottom:8px">
+            <h3>{{ recommendation.place }}</h3>
+            <span class="chip">{{ recommendation.priority }} priority</span>
+          </div>
+          {% if recommendation.general %}<span class="chip">General place type</span>{% endif %}
+          <p><strong>Why suggested:</strong> {{ recommendation.reason }}</p>
+          <p><strong>Next action:</strong> {{ recommendation.next_action }}</p>
+          {% if saved_plan_id %}
+          <form method="post" action="{{ url_for('update_location_prediction_step', plan_id=saved_plan_id, step_index=loop.index0) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <label for="predictor-status-{{ loop.index }}">Checklist status</label>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <select id="predictor-status-{{ loop.index }}" name="status" style="max-width:320px">
+                {% for status in check_statuses %}
+                <option value="{{ status }}" {% if recommendation.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn secondary" type="submit">Update status</button>
+            </div>
+          </form>
+          {% else %}
+          <label for="predictor-local-status-{{ loop.index }}">Checklist status</label>
+          <select id="predictor-local-status-{{ loop.index }}" data-local-check-status style="max-width:320px">
+            {% for status in check_statuses %}
+            <option value="{{ status }}" {% if recommendation.status == status %}selected{% endif %}>{{ status }}</option>
+            {% endfor %}
+          </select>
+          <small>Unsaved progress stays in this page only.</small>
+          {% endif %}
+        </article>
+      </li>
+      {% else %}
+      <li>No specific places could be suggested from the information provided.</li>
+      {% endfor %}
+    </ol>
+    <div class="panel">
+      <h3>FindIt report search</h3>
+      <p>Check existing reports for the item you described. The search uses your entered city when supplied, otherwise it searches across India.</p>
+      <a class="btn secondary" href="{{ url_for('items', q=predictor_input.get('item_name',''), city=predictor_input.get('city',''), state=predictor_input.get('state',''), smart='1') }}">Review matching lost-and-found reports</a>
+    </div>
+    <p><small>Map markers are not shown: FindIt does not geocode these user-entered place names, and it will not guess coordinates or businesses.</small></p>
+  </section>
+  {% endif %}
+
+  {% if saved_plans %}
+  <section class="panel">
+    <div class="panel-header"><h2>Your saved private plans</h2><span class="chip">{{ saved_plans|length }} recent</span></div>
+    <div class="grid">
+      {% for plan in saved_plans %}
+      <article class="card" style="padding:16px">
+        <strong>{{ plan.item_name }}</strong>
+        {% if plan.city or plan.state %}<p>{{ plan.city }}{% if plan.city and plan.state %}, {% endif %}{{ plan.state }}</p>{% endif %}
+        <small>{{ plan.created_at }}</small>
+        <p><a class="muted-link" href="{{ url_for('location_predictor', saved=plan.id) }}">Open private plan</a></p>
+        <form method="post" action="{{ url_for('delete_location_prediction_plan', plan_id=plan.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button class="btn secondary" type="submit">Delete plan</button>
+        </form>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</section>
+<script>
+(() => {
+  const rows = document.getElementById('predictorPlaces');
+  const addButton = document.getElementById('addPredictorPlace');
+  const updateRows = () => {
+    rows.querySelectorAll('.remove-place').forEach((button) => {
+      button.disabled = rows.querySelectorAll('.predictor-place-row').length <= 1;
+      button.onclick = () => {
+        if (rows.querySelectorAll('.predictor-place-row').length > 1) button.closest('.predictor-place-row').remove();
+      };
+    });
+    addButton.disabled = rows.querySelectorAll('.predictor-place-row').length >= 8;
+  };
+  addButton.addEventListener('click', () => {
+    if (rows.querySelectorAll('.predictor-place-row').length >= 8) return;
+    const row = document.createElement('div');
+    row.className = 'predictor-place-row';
+    row.style.cssText = 'display:flex;gap:10px;margin:8px 0';
+    const input = document.createElement('input');
+    input.name = 'places';
+    input.maxLength = 180;
+    input.placeholder = 'Enter a place you actually visited';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn secondary remove-place';
+    remove.setAttribute('aria-label', 'Remove visited place');
+    remove.textContent = 'Remove';
+    row.append(input, remove);
+    rows.append(row);
+    updateRows();
+    input.focus();
+  });
+  document.querySelectorAll('[data-local-check-status]').forEach((select) => {
+    select.addEventListener('change', () => {
+      select.setAttribute('aria-label', `Checklist status: ${select.value}`);
+    });
+  });
+  updateRows();
+})();
+</script>
+{% endblock %}

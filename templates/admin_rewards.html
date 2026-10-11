@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Admin Rewards | FindIt{% endblock %}
+{% block content %}
+<section class="page-shell">
+  <div class="panel">
+    <div class="panel-header">
+      <div><p class="eyebrow">Administrator tools</p><h1>Good Citizen Rewards</h1></div>
+      <a class="btn secondary" href="{{ url_for('admin_panel') }}">Back to staff panel</a>
+    </div>
+    <p>Reward records are an auditable ledger. Manual corrections require a reason and cannot be used to change the signed-in administrator's balance.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>Pending helpful clues</h2><span class="chip">{{ pending_clues|length }} to review</span></div>
+    {% for clue in pending_clues %}
+    <article class="card" style="padding:16px;margin-bottom:12px">
+      <strong>{{ clue[4] }}</strong>
+      <p>Submitted by {{ clue[2] }} · Report #{{ clue[3] }} · {{ clue[6] }}</p>
+      <p>{{ clue[5] }}</p>
+      <form method="post" action="{{ url_for('review_reward_clue', contribution_id=clue[0], action='approve') }}" style="display:inline">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="btn" type="submit">Approve (+{{ clue_points }} points)</button>
+      </form>
+      <form method="post" action="{{ url_for('review_reward_clue', contribution_id=clue[0], action='reject') }}" style="display:inline">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="btn secondary" type="submit">Reject</button>
+      </form>
+    </article>
+    {% else %}
+    <p class="empty-state">No helpful clues are waiting for review.</p>
+    {% endfor %}
+  </div>
+
+  <div class="panel">
+    <h2>Manual ledger adjustment</h2>
+    <p>Use only to correct a verified error. Enter a reason of at least 10 characters; negative adjustments cannot take a balance below zero.</p>
+    <form method="post" action="{{ url_for('adjust_reward_points') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <label for="reward-user">User</label>
+      <select id="reward-user" name="user_id" required>
+        <option value="">Select a user</option>
+        {% for user in reward_users %}<option value="{{ user[0] }}">{{ user[1] }} (account #{{ user[0] }})</option>{% endfor %}
+      </select>
+      <label for="reward-points">Points to add or remove</label>
+      <input id="reward-points" type="number" name="points" min="-10000" max="10000" required>
+      <label for="reward-reason">Reason</label>
+      <textarea id="reward-reason" name="reason" minlength="10" maxlength="500" required></textarea>
+      <button class="btn" type="submit">Record audited adjustment</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>Badge definitions</h2><span class="chip">Verified returns only</span></div>
+    {% for badge in badge_definitions %}
+    <form method="post" action="{{ url_for('configure_reward_badge', badge_id=badge[0]) }}" class="card" style="padding:14px;margin-bottom:10px">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <strong>{{ badge[1] }}</strong>
+      <label>Verified return threshold</label>
+      <input type="number" name="successful_returns" min="1" max="10000" value="{{ badge[2] }}" required>
+      <label><input type="checkbox" name="active" {% if badge[3] %}checked{% endif %}> Active</label>
+      <button class="btn secondary" type="submit">Save badge</button>
+    </form>
+    {% endfor %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>Recent reward ledger</h2><span class="chip">Latest 100</span></div>
+    <div class="table"><table>
+      <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Recovery / contribution</th><th>Points</th><th>Reason</th><th>Date</th><th>Created by</th><th>Correction</th></tr></thead>
+      <tbody>
+      {% for transaction in transactions %}
+      <tr>
+        <td>{{ transaction[0] }}</td><td>{{ transaction[2] }} (#{{ transaction[1] }})</td>
+        <td>{{ transaction[3]|replace('_', ' ')|title }}</td>
+        <td>{{ transaction[4] or transaction[5] or '—' }}</td>
+        <td>{{ '%+d'|format(transaction[6]) }}</td><td>{{ transaction[7] }}</td>
+        <td>{{ transaction[8] }}</td><td>{{ transaction[9] or 'System' }}</td>
+        <td>
+          {% if transaction[3] == 'successful_return' and transaction[6] > 0 and not transaction[10] %}
+          <form method="post" action="{{ url_for('reverse_reward_transaction', transaction_id=transaction[0]) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <label>Reason for reversal</label>
+            <input name="reason" minlength="10" maxlength="500" required>
+            <button class="btn secondary" type="submit">Reverse award</button>
+          </form>
+          {% elif transaction[10] %}
+          <span class="chip">Reversed</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9">No reward transactions recorded.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</section>
+{% endblock %}

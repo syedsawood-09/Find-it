@@ -1,12 +1,45 @@
 {% extends "base.html" %}{% block title %}Notifications | FindIt{% endblock %}{% block content %}
 <section class="page-shell">
   <div class="panel">
-    <h1 data-i18n="notifications">Notifications</h1>
-    {% for n in notifications %}
-    <div class="box" style="margin-bottom:10px">
-      <div data-notification-message="{{ n[2] }}">{{ n[2] }}</div>
-      <small style="display:block;color:#64748b">{{ n[4] }}</small>
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">Updates</p>
+        <h1 data-i18n="notifications">Notifications</h1>
+      </div>
+      <span class="chip">{{ notifications|selectattr('is_read', 'equalto', 0)|list|length }} unread</span>
     </div>
+    {% for n in notifications %}
+    <article class="card" style="margin-bottom:14px;{% if not n.is_read %}border-left:4px solid var(--primary);{% endif %}">
+      <div class="panel-header" style="margin-bottom:8px">
+        <strong>{{ 'Possible item match' if n.notification_type == 'match' else 'Claim update' if n.notification_type == 'claim' else 'Good Citizen reward' if n.notification_type == 'reward' else 'Update' }}</strong>
+        {% if not n.is_read %}<span class="chip">Unread</span>{% else %}<span class="chip">Read</span>{% endif %}
+      </div>
+      {% if n.notification_type == 'match' %}
+        <p>{{ n.message }}</p>
+        {% if n.matched_item_title and n.matched_item_id %}
+          <p><strong>Candidate report:</strong> {{ n.matched_item_title }}</p>
+          <p><strong>Estimated match score:</strong> {{ n.match_score }}%</p>
+          {% if n.explanation %}<p><strong>Why it was suggested:</strong> {{ n.explanation }}</p>{% endif %}
+          <a class="btn secondary" href="{{ url_for('item_detail', item_id=n.matched_item_id) }}">View candidate report</a>
+        {% else %}
+          <p>This candidate report is no longer available.</p>
+        {% endif %}
+        <small style="display:block;margin-top:10px">Match scores are ranking estimates, not probabilities or proof of ownership.</small>
+      {% elif n.notification_type == 'claim' %}
+        <p>{{ n.message }}</p>
+        {% if n.claim_item_title and n.item_id %}
+          <p>Report: <a href="{{ url_for('item_detail', item_id=n.item_id) }}">{{ n.claim_item_title }}</a></p>
+        {% endif %}
+      {% else %}
+        <div data-notification-message="{{ n.message }}">{{ n.message }}</div>
+      {% endif %}
+      <small style="display:block;color:#64748b;margin-top:10px">{{ n.created_at }}</small>
+      {% if not n.is_read %}
+      <form method="post" action="{{ url_for('mark_notification_read', notification_id=n.id) }}" style="margin-top:12px">
+        <button class="btn secondary" type="submit">Mark as read</button>
+      </form>
+      {% endif %}
+    </article>
     {% else %}
     <p data-i18n="noNotifications">No notifications.</p>
     {% endfor %}

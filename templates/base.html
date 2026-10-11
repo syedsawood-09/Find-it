@@ -31,10 +31,13 @@
   <nav>
     <a href="{{url_for('index')}}">Home</a>
     <a href="{{url_for('items')}}">Browse Items</a>
+    <a href="{{url_for('lost_item_detective')}}">AI Lost Item Detective</a>
+    <a href="{{url_for('location_predictor')}}">Location Predictor</a>
     {% if session.get('user_id') %}
       <a href="{{url_for('report')}}">Report</a>
       <a href="{{url_for('dashboard')}}">Dashboard</a>
       <a href="{{url_for('notifications')}}">Notifications</a>
+      <a href="{{url_for('good_citizen_rewards')}}">Good Citizen</a>
       {% if session.get('role') in ['admin','staff','security'] %}<a href="{{url_for('admin_panel')}}">Staff panel</a>{% endif %}
       <a href="{{url_for('logout')}}">Logout</a>
     {% else %}
@@ -58,7 +61,7 @@
         <option value="hi">हिं</option>
       </select>
     </label>
-    <a href="{{url_for('items')}}" data-i18n="browseItems">Browse Items</a>{% if session.get('user_id') %}<a href="{{url_for('report')}}" data-i18n="report">Report</a><a href="{{url_for('dashboard')}}" data-i18n="dashboard">Dashboard</a><a href="{{url_for('notifications')}}" data-i18n="notifications">Notifications</a>{% if session.get('role') in ['admin','staff','security'] %}<a href="{{url_for('admin_panel')}}" data-i18n="staffPanel">Staff panel</a>{% endif %}<a href="{{url_for('logout')}}" data-i18n="logout">Logout</a>{% else %}<a href="{{url_for('dashboard')}}" data-i18n="dashboard">Dashboard</a><a class="btn" href="{{url_for('register')}}" data-i18n="register">Register</a>{% endif %}
+    <a href="{{url_for('items')}}" data-i18n="browseItems">Browse Items</a><a href="{{url_for('lost_item_detective')}}">AI Lost Item Detective</a><a href="{{url_for('location_predictor')}}">Location Predictor</a>{% if session.get('user_id') %}<a href="{{url_for('report')}}" data-i18n="report">Report</a><a href="{{url_for('dashboard')}}" data-i18n="dashboard">Dashboard</a><a href="{{url_for('notifications')}}" data-i18n="notifications">Notifications</a><a href="{{url_for('good_citizen_rewards')}}">Good Citizen</a>{% if session.get('role') in ['admin','staff','security'] %}<a href="{{url_for('admin_panel')}}" data-i18n="staffPanel">Staff panel</a>{% endif %}<a href="{{url_for('logout')}}" data-i18n="logout">Logout</a>{% else %}<a href="{{url_for('dashboard')}}" data-i18n="dashboard">Dashboard</a><a class="btn" href="{{url_for('register')}}" data-i18n="register">Register</a>{% endif %}
   </div>
 </nav><div class="page">
 {% with messages=get_flashed_messages() %}{% if messages %}<div class="flash">{% for m in messages %}{{m}}{% endfor %}</div>{% endif %}{% endwith %}

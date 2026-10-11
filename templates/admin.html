@@ -22,6 +22,13 @@
     </div>
   </section>
 
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Good Citizen Rewards</h2>
+      <a class="btn secondary" href="{{ url_for('admin_rewards') }}">Review rewards and contributions</a>
+    </div>
+  </section>
+
   <div class="stats-grid">
     <div class="stat-card">
       <div class="label">Users</div>
@@ -84,6 +91,7 @@
           <th>Item</th>
           <th>Claimant</th>
           <th>Proof</th>
+          <th>Finder-only details</th>
           <th>Status</th>
           <th>Action</th>
         </tr>
@@ -95,20 +103,35 @@
             {% if c[7] %}<br><a href="{{ url_for('claim_evidence', claim_id=c[0], kind='image') }}">Private photo</a>{% endif %}
             {% if c[8] %}<br><a href="{{ url_for('claim_evidence', claim_id=c[0], kind='document') }}">Private document</a>{% endif %}
           </td>
+          <td>
+            {% if c[11] %}
+              <strong>Finder's private details:</strong><br>{{ c[11] }}
+              <small>Compare privately; never reveal these details to the claimant.</small>
+            {% else %}
+              <span class="muted">Finder did not provide private details.</span>
+            {% endif %}
+          </td>
           <td><span class="status-pill status-{{ c[2]|lower }}">{{ c[2] }}</span></td>
           <td>
             {% if c[2] == 'Pending' %}
               <div class="chip-group">
-                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='approve') }}"><button class="action-btn approve" type="submit">Approve</button></form>
-                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='reject') }}"><button class="action-btn reject" type="submit">Reject</button></form>
+                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='review') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="action-btn" type="submit">Start review</button></form>
+                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='approve') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="action-btn approve" type="submit">Approve</button></form>
+                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='reject') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="action-btn reject" type="submit">Reject</button></form>
+              </div>
+            {% elif c[2] == 'Under Review' %}
+              <div class="chip-group">
+                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='approve') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="action-btn approve" type="submit">Approve</button></form>
+                <form method="post" action="{{ url_for('claim_action', claim_id=c[0], action='reject') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="action-btn reject" type="submit">Reject</button></form>
               </div>
             {% elif c[2] == 'Approved' and c[10] == 'Verification' and session.get('role') in ['admin', 'security'] %}
               <form method="post" action="{{ url_for('item_handover', item_id=c[9]) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <label>Receiver full name <input name="receiver_name" value="{{ c[5] }}" required></label>
                 <label><input type="checkbox" name="receiver_confirmed" required style="width:auto"> Receiver confirmed receipt</label>
                 <button class="action-btn approve" type="submit">Record handover</button>
               </form>
-            {% elif c[2] == 'Approved' and c[10] == 'Returned' %}
+            {% elif c[2] == 'Returned' and c[10] == 'Returned' %}
               <a href="{{ url_for('handover_receipt', item_id=c[9]) }}">View handover receipt</a>
             {% else %}
               <span class="muted">-</span>
@@ -117,7 +140,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="5"><div class="empty-state">No claims in the queue right now.</div></td>
+          <td colspan="6"><div class="empty-state">No claims in the queue right now.</div></td>
         </tr>
         {% endfor %}
       </table>
@@ -137,6 +160,7 @@
           <td>{{ i[1] }}</td><td>{{ i[2] }}</td><td>{{ i[3] }}</td>
           <td>
             <form method="post" action="{{ url_for('item_status', item_id=i[0]) }}" class="chip-group">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
               <select name="status" aria-label="New status for {{ i[1] }}">
                 {% if i[3] == 'Lost' %}<option>Found</option><option>Closed</option>
                 {% elif i[3] == 'Found' %}<option>Claim Submitted</option><option>Closed</option>

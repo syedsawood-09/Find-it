@@ -3,15 +3,153 @@
 	<span class="badge">{{ item[8] }}</span><h1>{{ item[2] }}</h1>
 	{% if item[7] %}<div style="margin:18px 0"><img src="{{ url_for('static', filename='uploads/' + item[7]) }}" alt="{{ item[2] }}" style="max-width:100%;max-height:340px;border-radius:12px;border:1px solid #dbe2ea;object-fit:cover;display:block"></div>{% endif %}
 	<p><b>Category:</b> {{ item[3] }}</p><p><b>Description:</b> {{ item[4] }}</p>
-	<p><b>Location:</b> {{ item[5] }} · <a target="_blank" rel="noopener" href="https://www.openstreetmap.org/search?query={{ item[5]|urlencode }}">View map</a></p>
+	<p><b>City / state:</b> {{ public_location }}</p>
 	<p><b>Date:</b> {{ item[6] }}</p><p><b>Reported by:</b> {{ item[10] }}</p>
+	{% if show_recovery_timeline %}
+	<section class="panel" id="recovery-journey" style="margin:24px 0">
+		<div class="panel-header"><h2>Recovery journey</h2><span class="chip">{{ recovery_timeline|length }} updates</span></div>
+		<ol style="list-style:none;margin:0;padding:0 0 0 20px;border-left:2px solid #dbe2ea">
+			{% for event in recovery_timeline %}
+			<li style="position:relative;padding:0 0 20px 18px">
+				<span aria-hidden="true" style="position:absolute;left:-27px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--primary,#6366f1);border:2px solid white"></span>
+				<strong>{{ event.title }}</strong>
+				<small style="display:block;color:#64748b">{{ event.timestamp }}</small>
+				<p style="margin:6px 0">{{ event.description }}</p>
+				{% if event.url %}<a href="{{ event.url }}">View suggested report</a>{% endif %}
+			</li>
+			{% endfor %}
+		</ol>
+		<small>Match scores are estimates for ranking only, not proof of ownership.</small>
+	</section>
+	{% endif %}
+	{% if can_manage_memory_map %}
+	<section class="panel" id="memory-map" style="margin:24px 0">
+		<div class="panel-header">
+			<div>
+				<h2>FindIt Memory Map</h2>
+				<p>Rebuild your route from places you remember visiting before noticing the item was missing.</p>
+			</div>
+			<span class="chip">Private to you</span>
+		</div>
+		<p class="flash">These are user-provided possibilities, not verified tracking data. FindIt does not track your live or background location. Add approximate coordinates only if you choose to.</p>
+		<p><a class="btn secondary" href="{{ url_for('location_predictor', item_id=item[0]) }}">Build a location search plan from this report and your Memory Map</a></p>
+		<p><a class="btn secondary" href="{{ url_for('lost_item_detective', item_id=item[0]) }}">Investigate this Lost report with AI Lost Item Detective</a></p>
+		{% if item[8] != 'Lost' %}<p>This report is {{ item[8]|lower }}. Your saved journey remains private and editable, but is no longer compared with active found reports.</p>{% endif %}
+		<form method="post" action="{{ url_for('add_memory_map_place', item_id=item[0]) }}" class="card" style="padding:16px;margin:14px 0">
+			<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+			<h3>Add a visited place</h3>
+			<label>Place, landmark, station, or business name</label>
+			<input name="place_name" maxlength="180" required placeholder="e.g. Pune Junction or a shop you visited">
+			<div class="grid">
+				<div><label>City</label><input name="city" maxlength="100" placeholder="e.g. Pune"></div>
+				<div><label>State / union territory</label><input name="state" maxlength="100" placeholder="e.g. Maharashtra"></div>
+				<div><label>Date and approximate time visited</label><input type="datetime-local" name="visited_at" required></div>
+			</div>
+			<details style="margin-top:10px">
+				<summary>Optional approximate coordinates for your map</summary>
+				<p>Coordinates are entered by you and remain private. Never use live tracking or a precise sensitive location.</p>
+				<div class="grid">
+					<div><label>Approximate latitude</label><input type="number" name="approx_lat" step="0.01" min="-90" max="90"></div>
+					<div><label>Approximate longitude</label><input type="number" name="approx_lng" step="0.01" min="-180" max="180"></div>
+				</div>
+			</details>
+			<label>What do you remember? (optional)</label>
+			<textarea name="notes" maxlength="500" placeholder="Optional reminder, such as a purchase or stop you made"></textarea>
+			<button class="btn" type="submit">Add to my Memory Map</button>
+		</form>
+		{% if memory_places %}
+		<h3>Your visited-place timeline</h3>
+		<ol style="list-style:none;margin:0;padding:0 0 0 20px;border-left:2px solid #dbe2ea">
+			{% for place in memory_places %}
+			<li style="position:relative;padding:0 0 18px 18px">
+				<span aria-hidden="true" style="position:absolute;left:-27px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--primary,#6366f1);border:2px solid white"></span>
+				<strong>{{ place.place_name }}</strong>
+				<small style="display:block;color:#64748b">{{ place.visited_at }}{% if place.city or place.state %} · {{ public_item_region(place.city, place.state) }}{% endif %}</small>
+				{% if place.notes %}<p>{{ place.notes }}</p>{% endif %}
+				<details style="margin-top:8px">
+					<summary>Edit this place</summary>
+					<form method="post" action="{{ url_for('edit_memory_map_place', item_id=item[0], place_id=place.id) }}">
+						<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+						<label>Place name</label><input name="place_name" maxlength="180" required value="{{ place.place_name }}">
+						<div class="grid">
+							<div><label>City</label><input name="city" maxlength="100" value="{{ place.city or '' }}"></div>
+							<div><label>State / union territory</label><input name="state" maxlength="100" value="{{ place.state or '' }}"></div>
+							<div><label>Date and approximate time</label><input type="datetime-local" name="visited_at" required value="{{ place.visited_at|replace(' ', 'T') }}"></div>
+						</div>
+						<div class="grid">
+							<div><label>Approximate latitude</label><input type="number" name="approx_lat" step="0.01" min="-90" max="90" value="{{ place.approx_lat if place.approx_lat is not none else '' }}"></div>
+							<div><label>Approximate longitude</label><input type="number" name="approx_lng" step="0.01" min="-180" max="180" value="{{ place.approx_lng if place.approx_lng is not none else '' }}"></div>
+						</div>
+						<label>Notes</label><textarea name="notes" maxlength="500">{{ place.notes or '' }}</textarea>
+						<button class="btn secondary" type="submit">Save changes</button>
+					</form>
+					<form method="post" action="{{ url_for('delete_memory_map_place', item_id=item[0], place_id=place.id) }}" style="margin-top:8px" onsubmit="return confirm('Delete this visited place?')">
+						<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+						<button class="btn secondary" type="submit">Delete place</button>
+					</form>
+				</details>
+			</li>
+			{% endfor %}
+		</ol>
+		{% else %}
+		<p>No visited places added yet. Add a place above to compare it with active found reports.</p>
+		{% endif %}
+
+		{% if item[8] == 'Lost' and memory_matches %}
+		<h3>Possible found reports</h3>
+		<p>Ranked using the available approximate location and time signals. These are leads only, not verified tracking or proof of ownership.</p>
+		<div class="grid">
+			{% for match in memory_matches %}
+			<a class="card" style="padding:16px;text-decoration:none;color:inherit" href="{{ url_for('item_detail', item_id=match.id) }}">
+				<strong>{{ match.item_name }}</strong>
+				<span class="chip">{{ match.score }}% estimated ranking</span>
+				<p>Compared with your visit to {{ match.visit_place }}.</p>
+				<small>{{ match.reasons|join('; ') }}</small>
+			</a>
+			{% endfor %}
+		</div>
+		{% elif item[8] == 'Lost' and memory_places %}
+		<p>No relevant found reports could be ranked from the details currently available.</p>
+		{% endif %}
+
+		{% if memory_map_enabled %}
+		<div class="panel" style="padding:0;overflow:hidden;margin-top:18px">
+			<div id="memoryJourneyMap" aria-label="Private map of user-provided visited places and possible report locations" style="height:340px;width:100%"></div>
+		</div>
+		<small>The map contains only coordinates you or report owners entered approximately. Locations are possibilities, not verified tracking data.</small>
+		{% endif %}
+	</section>
+	{% endif %}
+	{% if can_create_search_mission %}
+	<section class="panel" style="margin:24px 0">
+		<div class="panel-header">
+			<div><h2>FindIt Search Missions &amp; Progress Tracker</h2>
+				<p>Turn your remembered places and this Lost report into an editable, prioritised checklist.</p></div>
+		</div>
+		<a class="btn" href="{{ url_for('create_search_mission', item_id=item[0]) }}">Create a search mission</a>
+	</section>
+	{% endif %}
+	{% if private_details %}<section class="flash"><h2>Private identifying details</h2><p>{{ private_details }}</p><small>Visible only to you and authorized claim-review staff.</small></section>{% endif %}
+	{% if item[8] in ['Found', 'Claim Submitted'] and session.get('user_id') and item[1] != session.get('user_id') %}
+	<section class="panel" style="margin:20px 0">
+		<h2>Contribute a helpful clue</h2>
+		<p>Share relevant information to help reunite this item with its owner. An administrator reviews clues; points are only awarded if approved.</p>
+		<form method="post" action="{{ url_for('submit_helpful_clue', item_id=item[0]) }}">
+			<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+			<label for="helpful-clue-details">Helpful clue</label>
+			<textarea id="helpful-clue-details" name="details" maxlength="1000" required placeholder="Share a useful lead without posting private contact details."></textarea>
+			<button class="btn secondary" type="submit">Submit for review</button>
+		</form>
+	</section>
+	{% endif %}
 	{% if item[8] in ['Found', 'Claim Submitted'] and session.get('user_id') and item[1] != session.get('user_id') %}
 	<hr><section id="claim"><h2>Is this your item?</h2><p>Submit identifying details so staff can verify ownership.</p>
 	<form method="post" action="{{ url_for('claim', item_id=item[0]) }}" enctype="multipart/form-data">
-		<label>Private proof / identifying information</label><textarea name="proof" required></textarea>
+		<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+		<label>Private ownership details</label><textarea name="proof" maxlength="2000" required placeholder="Describe distinctive details only you would know, where and when you lost the item, and any identifying marks or contents. Do not rely on match scores."></textarea>
 		<label>Private proof photo</label><input type="file" name="proof_image" accept="image/png,image/jpeg,image/webp">
 		<label>Private supporting document</label><input type="file" name="proof_file" accept=".pdf,.png,.jpg,.jpeg,.webp">
-		<small>Evidence is stored privately and can only be downloaded by staff, security, or administrators.</small><br><br>
+		<small>Your answers and evidence are private and can only be reviewed by authorized staff, security, or administrators. Public descriptions and AI similarity scores do not prove ownership.</small><br><br>
 		<button class="btn" type="submit">Submit Claim</button>
 	</form>
 	</section>
@@ -19,4 +157,33 @@
 	<hr><p><a class="btn" href="{{ url_for('login') }}">Sign in to claim this item</a></p>
 	{% endif %}
 </div>
+{% if memory_map_enabled %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(() => {
+	const mapElement = document.getElementById('memoryJourneyMap');
+	if (!mapElement || !window.L) return;
+	const points = {{ memory_map_points|tojson }};
+	const map = L.map(mapElement).setView([22.5, 79], 4.5);
+	L.tileLayer({{ map_tile_url|tojson }}, {
+		attribution: '&copy; OpenStreetMap contributors',
+		maxZoom: 19
+	}).addTo(map);
+	const bounds = [];
+	points.forEach((point) => {
+		const marker = L.marker([point.lat, point.lng]).addTo(map);
+		const popup = document.createElement('div');
+		const title = document.createElement('strong');
+		title.textContent = point.name;
+		const region = document.createElement('p');
+		region.textContent = `${point.kind === 'visit' ? 'Your visited possibility' : 'Possible report'} · ${point.region}`;
+		popup.append(title, region);
+		marker.bindPopup(popup);
+		bounds.push([point.lat, point.lng]);
+	});
+	if (bounds.length) map.fitBounds(bounds, { padding: [24, 24], maxZoom: 12 });
+})();
+</script>
+{% endif %}
 {% endblock %}

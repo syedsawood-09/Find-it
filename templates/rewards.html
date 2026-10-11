@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Good Citizen Rewards | FindIt{% endblock %}
+{% block content %}
+<section class="page-shell">
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">Community recognition</p>
+        <h1>Good Citizen Rewards</h1>
+      </div>
+      <span class="chip">{{ points }} points</span>
+    </div>
+    <p>Earn recognition by helping people recover belongings. Points are issued only for verified returns or moderator-approved clues. Similarity scores and report submissions do not earn points.</p>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="label">Points balance</div><div class="value">{{ points }}</div></div>
+      <div class="stat-card"><div class="label">Verified returns</div><div class="value">{{ successful_returns }}</div></div>
+      <div class="stat-card"><div class="label">Approved helpful clues</div><div class="value">{{ helpful_contributions }}</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>Your badges</h2><span class="chip">{{ badges|length }} earned</span></div>
+    {% if badges %}
+    <div class="grid">
+      {% for badge in badges %}
+      <article class="card" style="padding:16px">
+        <strong>{{ badge[0] }}</strong>
+        <p>Unlocked after {{ badge[1] }} verified return{{ '' if badge[1] == 1 else 's' }}.</p>
+        <small>{{ badge[2] }}</small>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">No badges yet. A badge is earned through verified helpful contributions, not the number of reports submitted.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>Reward history</h2><span class="chip">{{ history|length }} recent transactions</span></div>
+    {% if history %}
+    <div class="table"><table>
+      <thead><tr><th>Contribution</th><th>Points</th><th>Reason</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for transaction in history %}
+      <tr>
+        <td>{{ transaction[0]|replace('_', ' ')|title }}</td>
+        <td>{{ '%+d'|format(transaction[1]) }}</td>
+        <td>{{ transaction[2] }}</td>
+        <td>{{ transaction[3] }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="empty-state">Your reward activity will appear here after a verified contribution.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>Leaderboard</h2>
+      <div><a class="btn secondary" href="{{ url_for('good_citizen_rewards', period='month') }}">This month</a>
+      <a class="btn secondary" href="{{ url_for('good_citizen_rewards', period='all') }}">All time</a></div>
+    </div>
+    <p>Only users who opt in are listed. Rankings count verified returns and approved helpful clues; no contact information is displayed.</p>
+    {% if leaderboard %}
+    <div class="table"><table>
+      <thead><tr><th>Rank</th><th>Display name</th><th>Helpful contributions</th><th>Verified returns</th><th>Approved clues</th><th>Points</th></tr></thead>
+      <tbody>
+      {% for entry in leaderboard %}
+      <tr><td>{{ loop.index }}</td><td>{{ entry[0] }}</td><td>{{ entry[1] + entry[2] }}</td><td>{{ entry[1] }}</td><td>{{ entry[2] }}</td><td>{{ entry[3] }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="empty-state">No opted-in verified contributors to show for this period.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Leaderboard privacy</h2>
+    <p>Participation is optional. Your email, phone number and account name are never published in the leaderboard.</p>
+    <form method="post">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <label>
+        <input type="checkbox" name="reward_public" {% if preferences[0] %}checked{% endif %}>
+        Show my verified contributions on the public leaderboard
+      </label>
+      <label for="reward-public-name">Public display name</label>
+      <input id="reward-public-name" name="reward_public_name" maxlength="80" value="{{ preferences[1] or '' }}" placeholder="Choose a name shown on the leaderboard">
+      <button class="btn" type="submit">Save privacy settings</button>
+    </form>
+  </div>
+  <small>Points are community recognition, not cash or a promise of discounts or partner benefits.</small>
+</section>
+{% endblock %}

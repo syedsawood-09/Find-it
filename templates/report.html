@@ -8,44 +8,268 @@
 		<a class="card" href="{{ url_for('item_detail', item_id=match.id) }}" style="text-decoration:none;color:inherit">
 			<strong>{{ match.name }}</strong><p>{{ match.category }} · {{ match.location }}</p>
 			<span class="chip">{{ match.score }}% similar</span>
-			{% if match.image_score is not none %}<small>{{ 'AI visual similarity' if match.match_method == 'AI visual + metadata' else 'Photo similarity' }}: {{ match.image_score }}%</small>{% endif %}
+			{% if match.image_score is not none %}<small style="display:block;margin-top:6px">{{ 'AI photo comparison' if match.match_method == 'AI visual + metadata' else 'Local photo similarity' }}: {{ match.image_score }}/100. {% if match.visual_explanation %}Visible-feature note: {{ match.visual_explanation }} {% else %}This compares overall appearance; compare visible color, shape, patterns, and markings yourself. {% endif %}This is not proof that the objects are the same.</small>{% endif %}
 		</a>
 		{% endfor %}
 	</div>
 	{% endif %}
 	{% if possible_matches %}
 	<section class="panel" style="margin:18px 0">
-		<h2>Possible matches</h2>
-		<p>These existing reports may relate to yours. You can still submit your report.</p>
+		<h2>Smart possible matches</h2>
+		<p>These reports are ranked using description meaning and available report details. Scores are estimates, not probabilities or proof of ownership. You can still submit your report.</p>
+		<small>If you selected a photo, choose it again before continuing.</small>
 		{% for match in possible_matches %}
-		<p><a href="{{ url_for('item_detail', item_id=match.id) }}">{{ match.name }}</a> · {{ match.location }} · {{ match.score }}% match{% if match.image_score is not none %} · {{ 'AI visual' if match.match_method == 'AI visual + metadata' else 'photo' }} {{ match.image_score }}%{% endif %}</p>
+		<div class="card" style="margin:12px 0">
+			<strong>{{ match.score }}% estimated match</strong> · <a href="{{ url_for('item_detail', item_id=match.id) }}">{{ match.name }}</a>
+			<p>{{ match.status }} · {{ match.category }} · {{ match.location }}</p>
+			{% if match.reasons %}<small>Why suggested: {{ match.reasons|join('; ') }}.</small>{% endif %}
+			{% if match.image_score is not none %}<small style="display:block;margin-top:6px"><strong>Photo clue:</strong> {{ 'AI visual comparison' if match.match_method == 'AI visual + metadata' else 'Local perceptual-image comparison' }} score {{ match.image_score }}/100. {% if match.visual_explanation %}Visible-feature note: {{ match.visual_explanation }} {% else %}It considers overall appearance, including shape, color, and visible patterns. {% endif %}Compare the candidate yourself; a photo score cannot establish identity.</small>{% endif %}
+			<small style="display:block;margin-top:6px">Text method: {{ match.text_method }}. This score is a ranking estimate, not proof of ownership.</small>
+		</div>
 		{% endfor %}
 	</section>
 	{% endif %}
+	{% if photo_search_complete %}
+	<p class="flash" role="status">
+		{% if duplicate_items or possible_matches %}
+		Photo search complete. These are possible candidates only; open a report and use its existing secure claim process. No new report was published.
+		{% else %}
+		Photo search complete; no eligible matching reports were found. No report was published. You can review your confirmed clues or submit the form separately to create a report.
+		{% endif %}
+	</p>
+	{% endif %}
 	<form method="post" enctype="multipart/form-data">
+		<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 		<label>Type</label>
-		<select name="item_type">
+		<select name="item_type" id="reportItemType">
 			<option value="Lost" {% if form_data.get('item_type', 'Lost') == 'Lost' %}selected{% endif %}>Lost</option>
 			<option value="Found" {% if form_data.get('item_type') == 'Found' %}selected{% endif %}>Found</option>
 		</select>
-		<label>Item Name</label><input name="item_name" value="{{ form_data.get('item_name', '') }}" required>
+		<label>Item Name</label><input name="item_name" id="reportItemName" value="{{ form_data.get('item_name', '') }}" required>
 		<label>Category</label>
-		<select name="category">
+		<select name="category" id="reportCategory">
 			{% for category in ['Electronics','Documents','Wallet','Keys','Bag','Books','Other'] %}
 			<option value="{{ category }}" {% if form_data.get('category', 'Electronics') == category %}selected{% endif %}>{{ category }}</option>
 			{% endfor %}
 		</select>
-		<label>Brand</label><input name="brand" value="{{ form_data.get('brand', '') }}" placeholder="Optional">
-		<label>Color</label><input name="color" value="{{ form_data.get('color', '') }}" placeholder="Optional">
-		<label>Description</label><textarea name="description" required>{{ form_data.get('description', '') }}</textarea>
-		<label>Location</label><input name="location" value="{{ form_data.get('location', '') }}" required placeholder="Building, room, or campus area">
-		<label>Date</label><input type="date" name="event_date" value="{{ form_data.get('event_date', '') }}" required>
+		<label>Brand</label><input name="brand" id="reportBrand" value="{{ form_data.get('brand', '') }}" placeholder="Optional">
+		<label>Color</label><input name="color" id="reportColor" value="{{ form_data.get('color', '') }}" placeholder="Optional">
+		<label>Description</label><textarea name="description" id="reportDescription" required>{{ form_data.get('description', '') }}</textarea>
+		<div id="finderPrivateDetails" class="flash" style="margin:12px 0">
+			<label>Private identifying details (optional, for Found reports only)</label>
+			<textarea name="private_details" maxlength="2000" placeholder="Keep one or more distinctive details out of the public description. Authorized review staff can compare these with a claimant's private answers.">{{ form_data.get('private_details', '') }}</textarea>
+			<small>Never enter these details in the public description. Claimants cannot see them; only you and authorized claim-review staff can access them.</small>
+		</div>
+		<section class="panel" id="reportAssistant" aria-live="polite" style="margin:14px 0;padding:18px">
+			<div class="panel-header" style="margin-bottom:8px">
+				<div><h2 style="font-size:1.2rem">Smart Report Assistant</h2>
+					<small>Suggestions are based only on words in your description. Nothing is applied or submitted unless you choose it.</small>
+				</div>
+				<button class="btn secondary" type="button" id="analyzeReportDescription">Suggest details</button>
+			</div>
+			<div id="reportAssistantStatus" role="status">Enter a few description words to see optional suggestions.</div>
+			<div id="reportAssistantResults"></div>
+		</section>
+		<label>General area only</label><input name="location" id="reportLocation" value="{{ form_data.get('location', '') }}" required placeholder="A public place or broad area; do not enter a home or street address">
+		<div class="grid">
+			<div><label>City</label><input name="city" id="reportCity" value="{{ form_data.get('city') or '' }}" placeholder="e.g. Bengaluru"></div>
+			<div><label>State / union territory</label><input name="state" id="reportState" value="{{ form_data.get('state') or '' }}" placeholder="e.g. Karnataka"></div>
+		</div>
+		<details style="margin-top:12px">
+			<summary>Optional approximate coordinates for matching</summary>
+			<p>Do not share live location. Coordinates are optional, used only to estimate distance, and are not shown publicly.</p>
+			<div class="grid">
+				<div><label>Approximate latitude</label><input type="number" step="0.01" min="-90" max="90" name="approx_lat" value="{{ form_data.get('approx_lat') or '' }}"></div>
+				<div><label>Approximate longitude</label><input type="number" step="0.01" min="-180" max="180" name="approx_lng" value="{{ form_data.get('approx_lng') or '' }}"></div>
+			</div>
+		</details>
+		<label>Date</label><input type="date" name="event_date" id="reportEventDate" value="{{ form_data.get('event_date', '') }}" required>
 		<label>Approximate time</label><input type="time" name="event_time" value="{{ form_data.get('event_time', '') }}">
-		<label>Item Photo for Identification</label><input type="file" name="image" accept="image/*">
-		<small>Use a clear item photo. Do not include private documents in the public item photo. If AI image matching is enabled, this public report photo may be sent to OpenAI for visual comparison; private claim evidence is never sent.</small>
+		<section class="panel" style="margin:14px 0;padding:18px">
+			<h2 style="font-size:1.2rem">FindIt AI Photo Clue Finder</h2>
+			<p>Upload a photo to compare its overall visual appearance with eligible existing reports. The local fallback uses perceptual image similarity; it does not identify an item or read its markings. Add only visual details you can confirm in the existing color, brand, and description fields.</p>
+			<label for="itemPhoto">Item photo (optional)</label>
+			<input id="itemPhoto" type="file" name="image" accept="image/jpeg,image/png,image/webp">
+			<small>JPEG, PNG, or WebP; maximum upload size is 5 MB. Images are validated and re-encoded before use. If you submit a report, its photo is displayed with the report under existing public listing behavior. Search-only does not publish or save your photo. Do not upload faces, private documents, or sensitive background details.</small>
+			<label style="display:flex;align-items:flex-start;gap:10px">
+				<input type="checkbox" name="ai_photo_consent" style="width:auto;margin-top:4px">
+				I consent to send this photo, and eligible candidate report photos, to OpenAI for visual comparison if the service is configured.
+			</label>
+			<small>Optional and unchecked by default. Only images are sent for this comparison—no names, contact information, private ownership clues, or claim evidence. Without consent or OpenAI configuration, FindIt uses local perceptual-image similarity and your confirmed text details. A visual score is a ranking clue, not proof that two items are identical.</small>
+		</section>
 		<label><input type="checkbox" name="is_anonymous" {% if form_data.get('is_anonymous') %}checked{% endif %} style="width:auto"> Hide my name on the public report</label>
-		{% if duplicate_items %}<input type="hidden" name="confirm_report" value="yes">{% endif %}
-		<br><br><button class="btn" type="submit">{% if duplicate_items %}Submit Report Anyway{% else %}Submit Report{% endif %}</button>
+		{% if duplicate_items or possible_matches %}<input type="hidden" name="confirm_report" value="yes">{% endif %}
+		<br><br>
+		<button class="btn secondary" type="submit" name="photo_search_only" value="yes">Find possible reports using this photo</button>
+		<button class="btn" type="submit">{% if duplicate_items or possible_matches %}Continue with Report{% else %}Submit Report{% endif %}</button>
 	</form>
 </div>
+<script>
+(() => {
+	const form = document.querySelector('#reportAssistant')?.closest('form');
+	if (!form) return;
+	const description = document.getElementById('reportDescription');
+	const status = document.getElementById('reportAssistantStatus');
+	const results = document.getElementById('reportAssistantResults');
+	const analyzeButton = document.getElementById('analyzeReportDescription');
+	const fields = {
+		item_type: document.getElementById('reportItemType'),
+		category: document.getElementById('reportCategory'),
+		item_name: document.getElementById('reportItemName'),
+		brand: document.getElementById('reportBrand'),
+		color: document.getElementById('reportColor'),
+		location: document.getElementById('reportLocation'),
+		city: document.getElementById('reportCity'),
+		state: document.getElementById('reportState'),
+		event_date: document.getElementById('reportEventDate')
+	};
+	let debounceTimer;
+	let activeRequest;
+	const privateDetails = document.getElementById('finderPrivateDetails');
+
+	const addText = (parent, tag, text) => {
+		const element = document.createElement(tag);
+		element.textContent = text;
+		parent.appendChild(element);
+		return element;
+	};
+
+	const renderSuggestions = (data) => {
+		results.replaceChildren();
+		const suggestions = data.suggestions || {};
+		const proposedFields = [
+			['item_name', 'Item name', fields.item_name],
+			['category', 'Category', fields.category],
+			['color', 'Color', fields.color],
+			['brand', 'Brand', fields.brand]
+		];
+		const proposals = document.createElement('div');
+		proposals.className = 'grid';
+		proposedFields.forEach(([key, label, input]) => {
+			const value = suggestions[key];
+			if (!value) return;
+			const card = document.createElement('div');
+			card.className = 'card';
+			card.style.padding = '14px';
+			addText(card, 'strong', `${label}: ${value}`);
+			if (input.value.trim().toLowerCase() === String(value).toLowerCase()) {
+				addText(card, 'small', 'Already matches your entry.');
+			} else {
+				const button = document.createElement('button');
+				button.type = 'button';
+				button.className = 'btn secondary';
+				button.textContent = `Use ${label.toLowerCase()}`;
+				button.addEventListener('click', () => {
+					input.value = value;
+					input.dispatchEvent(new Event('change', { bubbles: true }));
+					button.textContent = 'Added — review or edit';
+					button.disabled = true;
+				});
+				card.appendChild(button);
+			}
+			proposals.appendChild(card);
+		});
+		if (proposals.childElementCount) results.appendChild(proposals);
+
+		if (data.keywords?.length) {
+			const keywordBox = document.createElement('div');
+			keywordBox.style.marginTop = '12px';
+			addText(keywordBox, 'strong', 'Words found in your description: ');
+			data.keywords.forEach((keyword) => {
+				const chip = document.createElement('span');
+				chip.className = 'chip';
+				chip.style.margin = '3px';
+				chip.textContent = keyword;
+				keywordBox.appendChild(chip);
+			});
+			results.appendChild(keywordBox);
+		}
+
+		if (suggestions.features?.length) {
+			const featureBox = document.createElement('div');
+			featureBox.style.marginTop = '10px';
+			addText(featureBox, 'p', `Distinctive details already mentioned: ${suggestions.features.join(', ')}.`);
+			results.appendChild(featureBox);
+		}
+
+		const missingBox = document.createElement('div');
+		missingBox.className = 'flash';
+		missingBox.style.marginTop = '12px';
+		if (data.missing?.length) {
+			addText(missingBox, 'strong', 'Check before submitting');
+			const list = document.createElement('ul');
+			data.missing.forEach((entry) => addText(list, 'li', entry));
+			missingBox.appendChild(list);
+		} else {
+			addText(missingBox, 'strong', 'Required report details are present.');
+			addText(missingBox, 'p', 'Review the suggestions and all report details before submitting.');
+		}
+		results.appendChild(missingBox);
+		if (!proposals.childElementCount && !data.keywords?.length && !suggestions.features?.length) {
+			addText(results, 'p', 'No specific attributes could be identified. Add more observed details if known; do not guess.');
+		}
+	};
+
+	const analyze = async () => {
+		const text = description.value.trim();
+		if (activeRequest) activeRequest.abort();
+		activeRequest = null;
+		if (text.split(/\s+/).filter(Boolean).length < 2) {
+			status.textContent = 'Add a little more description to get useful suggestions.';
+			results.replaceChildren();
+			analyzeButton.disabled = false;
+			return;
+		}
+		results.replaceChildren();
+		const controller = new AbortController();
+		activeRequest = controller;
+		analyzeButton.disabled = true;
+		status.textContent = 'Reviewing the words you entered…';
+		try {
+			const response = await fetch('{{ url_for("report_assistant") }}', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					item_type: fields.item_type.value,
+					description: text,
+					category: fields.category.value,
+					location: fields.location.value,
+					city: fields.city.value,
+					state: fields.state.value,
+					event_date: fields.event_date.value
+				}),
+				signal: controller.signal
+			});
+			if (activeRequest !== controller) return;
+			const data = await response.json();
+			if (activeRequest !== controller) return;
+			if (!response.ok) throw new Error(data.error || 'Suggestions are temporarily unavailable.');
+			renderSuggestions(data);
+			status.textContent = fields.item_type.value === 'Lost'
+				? 'Optional suggestions for your lost-item report. Please verify each one.'
+				: 'Optional suggestions for your found-item report. Please verify each one.';
+		} catch (error) {
+			if (error.name !== 'AbortError' && activeRequest === controller) {
+				status.textContent = `${error.message} You can still complete the report manually.`;
+			}
+		} finally {
+			if (activeRequest === controller) {
+				activeRequest = null;
+				analyzeButton.disabled = false;
+			}
+		}
+	};
+
+	analyzeButton.addEventListener('click', analyze);
+	description.addEventListener('input', () => {
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(analyze, 700);
+	});
+	fields.item_type.addEventListener('change', () => {
+		privateDetails.style.display = fields.item_type.value === 'Found' ? '' : 'none';
+		if (description.value.trim().split(/\s+/).filter(Boolean).length >= 2) analyze();
+	});
+	privateDetails.style.display = fields.item_type.value === 'Found' ? '' : 'none';
+})();
+</script>
 {% endblock %}

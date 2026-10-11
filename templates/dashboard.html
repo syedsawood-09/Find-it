@@ -30,6 +30,43 @@
 
   <section class="panel">
     <div class="panel-header">
+      <h2>Good Citizen Rewards</h2>
+      <a class="muted-link" href="{{ url_for('good_citizen_rewards') }}">View rewards and leaderboard</a>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="label">Points</div><div class="value">{{ reward_summary.points }}</div></div>
+      <div class="stat-card"><div class="label">Verified returns</div><div class="value">{{ reward_summary.successful_returns }}</div></div>
+      <div class="stat-card"><div class="label">Badges</div><div class="value">{{ reward_summary.badges }}</div></div>
+    </div>
+    <small>Points are awarded for verified helpful contributions, not report submissions or AI scores.</small>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>My Search Missions</h2>
+      <a class="muted-link" href="{{ url_for('search_missions') }}">View all missions</a>
+    </div>
+    {% if dashboard_missions %}
+      <div class="grid">
+        {% for mission in dashboard_missions %}
+        <article class="card" style="padding:16px">
+          <div class="panel-header">
+            <h3>{{ mission.item_name }}</h3>
+            <span class="chip">{{ mission.status }}</span>
+          </div>
+          <p>{{ mission.completed_count }} completed · {{ mission.remaining_count }} remaining · Updated {{ mission.updated_at }}</p>
+          <progress value="{{ mission.progress }}" max="100" aria-label="{{ mission.progress }} percent complete" style="width:100%"></progress>
+          <p><a class="btn secondary" href="{{ url_for('search_mission', mission_id=mission.id) }}">Continue search</a></p>
+        </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">No search missions yet. Open one of your Lost reports to build a personalised search checklist.</div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
       <h2 data-i18n="recentItemGallery">Recent item gallery</h2>
       <span class="chip">{{ totals.reports }} <span data-i18n="reportsSoFar">reports so far</span></span>
     </div>
@@ -108,7 +145,7 @@
         </tr>
         {% for i in my_items %}
         <tr>
-          <td><div class="link-row"><a href="{{ url_for('item_detail', item_id=i[0]) }}">{{ i[2] }}</a></div></td>
+          <td><div class="link-row"><a href="{{ url_for('item_detail', item_id=i[0]) }}">{{ i[2] }}</a><a class="muted-link" href="{{ url_for('item_detail', item_id=i[0]) }}#recovery-journey">Recovery journey</a></div></td>
           <td>{{ i[3] }}</td>
           <td><span class="status-pill status-{{ i[8]|lower }}">{{ i[8] }}</span></td>
           <td>{{ i[6] }}</td>
@@ -135,7 +172,7 @@
           <td><a href="{{ url_for('item_detail', item_id=claim[1]) }}">{{ claim[2] }}</a></td>
           <td><span class="status-pill status-{{ claim[3]|lower }}">{{ claim[3] }}</span></td>
           <td>{{ claim[4] }}</td><td>{{ claim[5] }}</td>
-          <td>{% if claim[6] %}<a href="{{ url_for('handover_receipt', item_id=claim[1]) }}">View receipt</a>{% else %}-{% endif %}</td>
+          <td>{% if claim[6] and claim[3] == 'Returned' %}<a href="{{ url_for('handover_receipt', item_id=claim[1]) }}">View receipt</a>{% else %}-{% endif %}</td>
         </tr>
         {% else %}<tr><td colspan="5"><div class="empty-state">You haven't claimed an item yet. Browse found items to get started.</div></td></tr>{% endfor %}
       </table>

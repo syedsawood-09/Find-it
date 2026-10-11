@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Create Search Mission | FindIt{% endblock %}
+{% block content %}
+<div class="box">
+  <p class="eyebrow">FindIt Search Missions &amp; Progress Tracker</p>
+  <h1>Create a search mission</h1>
+  <p>Build an editable checklist for your Lost report. Suggested tasks use your report details and any visited places you chose to save in your private Memory Map.</p>
+  <section class="panel">
+    <h2>{{ item[1] }}</h2>
+    <p><b>Category:</b> {{ item[2] }}</p>
+    <p><b>Last reported place:</b> {{ item[6] }}{% if item[7] or item[8] %} · {{ item[7] }}{% if item[7] and item[8] %}, {% endif %}{{ item[8] }}{% endif %}</p>
+    <p><b>Date last seen:</b> {{ item[4] }}{% if item[5] %} · {{ item[5] }}{% endif %}</p>
+  </section>
+  <p class="flash">Recommendations are rule-based practical suggestions, not verified locations or probabilities. Tasks start as Not Started and are never automatically marked complete.</p>
+  <form method="post">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <button class="btn" type="submit">Create my search mission</button>
+    <a class="btn secondary" href="{{ url_for('item_detail', item_id=item[0]) }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

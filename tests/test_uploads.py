@@ -60,11 +60,13 @@ def test_claim_accepts_proof_image():
             sess["user_id"] = claim_user_id
             sess["name"] = "Tester"
             sess["role"] = "user"
+            sess["_csrf_token"] = "upload-claim-test-token"
 
         response = client.post(
             f"/claim/{item_id}",
             data={
                 "proof": "I own this item because of the engraved initials.",
+                "_csrf_token": "upload-claim-test-token",
                 "proof_image": (BytesIO(b"fake-image-content"), "proof.png"),
             },
             content_type="multipart/form-data",

@@ -47,10 +47,16 @@ def test_handover_requires_receiver_confirmation_and_creates_receipt():
     try:
         with app.test_client() as client:
             with client.session_transaction() as session:
-                session.update(user_id=staff_id, name="Receipt Security", role="security")
+                session.update(
+                    user_id=staff_id, name="Receipt Security", role="security",
+                    _csrf_token="receipt-test-token",
+                )
             response = client.post(
                 f"/admin/item/{item_id}/handover",
-                data={"receiver_name": "Receipt Receiver"},
+                data={
+                    "receiver_name": "Receipt Receiver",
+                    "_csrf_token": "receipt-test-token",
+                },
             )
             assert response.status_code == 302
             assert response.location.endswith("/admin")
@@ -60,6 +66,7 @@ def test_handover_requires_receiver_confirmation_and_creates_receipt():
                 data={
                     "receiver_name": "Receipt Receiver",
                     "receiver_confirmed": "on",
+                    "_csrf_token": "receipt-test-token",
                 },
             )
             assert response.status_code == 302
@@ -82,11 +89,14 @@ def test_handover_requires_receiver_confirmation_and_creates_receipt():
             receipt = cur.fetchone()
             cur.execute("SELECT status FROM items WHERE id=%s", (item_id,))
             item_status = cur.fetchone()[0]
+            cur.execute("SELECT status FROM claims WHERE id=%s", (claim_id,))
+            claim_status = cur.fetchone()[0]
             cur.close()
             assert tuple(receipt) == (
                 claim_id, receiver_id, "Receipt Receiver", 1, staff_id, "Receipt Security"
             )
             assert item_status == "Returned"
+            assert claim_status == "Returned"
     finally:
         with app.app_context():
             cur = mysql.connection.cursor()

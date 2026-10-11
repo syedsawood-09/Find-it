@@ -20,7 +20,7 @@
   }
   .browse-search {
     display: grid;
-    grid-template-columns: 1.6fr repeat(2, minmax(160px, 1fr)) 140px;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
     gap: 12px;
     padding: 20px;
     border-radius: 22px;
@@ -42,8 +42,8 @@
     border: 1px solid rgba(91,76,240,0.12);
     box-shadow: 0 22px 50px rgba(35, 25, 78, 0.10);
   }
-  #bengaluruMap {
-    height: 360px;
+  #indiaReportsMap {
+    height: 340px;
     width: 100%;
   }
   .grid {
@@ -83,20 +83,17 @@
       <p class="eyebrow">Item directory</p>
       <h1>Browse reports</h1>
     </div>
-    <span class="chip">{{ items|length }} active records</span>
+    <span class="chip">{{ total_results }} {{ 'ranked matches' if smart_mode else 'reports' }}</span>
   </div>
 
   <form class="browse-search" method="get">
-    <input name="q" value="{{ q }}" placeholder="Search item, brand, location or description">
-    <input name="location" value="{{ location }}" placeholder="Campus area / location">
-    <select name="neighborhood">
-      <option value="">All Bengaluru neighborhoods</option>
-      <option value="Koramangala" {% if neighborhood == 'Koramangala' %}selected{% endif %}>Koramangala</option>
-      <option value="Indiranagar" {% if neighborhood == 'Indiranagar' %}selected{% endif %}>Indiranagar</option>
-      <option value="Majestic" {% if neighborhood == 'Majestic' %}selected{% endif %}>Majestic</option>
-      <option value="Whitefield" {% if neighborhood == 'Whitefield' %}selected{% endif %}>Whitefield</option>
-      <option value="HSR Layout" {% if neighborhood == 'HSR Layout' %}selected{% endif %}>HSR Layout</option>
-    </select>
+    <input name="q" value="{{ q }}" placeholder="Keywords or natural-language description">
+    <input name="city" value="{{ city }}" placeholder="City / cities (comma-separated)">
+    <input name="state" value="{{ state }}" placeholder="State / union territory">
+    <input name="location" value="{{ location }}" placeholder="General area (optional)">
+    <input name="neighborhood" value="{{ neighborhood }}" placeholder="Neighborhood (any city)">
+    <label>Date from<input type="date" name="date_from" value="{{ date_from }}"></label>
+    <label>Date to<input type="date" name="date_to" value="{{ date_to }}"></label>
     <select name="category">
       <option value="">All categories</option>
       {% for c in ['Electronics','Documents','Wallet','Keys','Bag','Books','Other'] %}
@@ -104,31 +101,61 @@
       {% endfor %}
     </select>
     <select name="status">
-      <option value="">All status</option>
-      {% for s in ['Lost','Found','Claim Submitted','Verification','Returned','Closed','Recovered'] %}
-        <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+      <option value="">{{ 'Any report type' if smart_mode else 'All status' }}</option>
+      {% for s in (['Lost','Found','Claim Submitted'] if smart_mode else ['Lost','Found','Claim Submitted','Verification','Returned','Closed','Recovered']) %}
+        <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}{{ ' reports' if smart_mode else '' }}</option>
       {% endfor %}
     </select>
+    <select name="sort">
+      <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest report date</option>
+      <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest report date</option>
+      {% if smart_mode %}<option value="score" {% if sort == 'score' %}selected{% endif %}>Best AI match</option>{% endif %}
+    </select>
+    <input type="number" name="approx_lat" step="0.01" min="-90" max="90" placeholder="Approx. latitude (optional)" value="{{ request.args.get('approx_lat', '') }}">
+    <input type="number" name="approx_lng" step="0.01" min="-180" max="180" placeholder="Approx. longitude (optional)" value="{{ request.args.get('approx_lng', '') }}">
+    <label style="display:flex;align-items:center;gap:8px;margin:0;white-space:nowrap">
+      <input type="checkbox" name="smart" value="1" {% if smart_mode %}checked{% endif %} style="width:auto">
+      Natural-language smart matching
+    </label>
     <button class="btn search-btn" type="submit">Search</button>
   </form>
+  <small>Leave city and state blank to search across India. Multiple city names may be comma-separated. Coordinates are optional approximate reference points—do not share live location.</small>
+
+  {% if smart_mode %}<p class="muted-link">{% if status %}Selecting {{ status }} searches the eligible opposite report type. {% else %}Searches eligible Lost and Found reports across India. {% endif %}AI ranking uses semantic description matching and available metadata. Approximate distance is used only when both points are provided.</p>{% endif %}
 
   <div class="map-panel">
-    <div id="bengaluruMap"></div>
+    <div id="indiaReportsMap" aria-label="Approximate report locations by city"></div>
   </div>
 
   <div class="grid">
+    {% if smart_mode %}
+      {% for match in smart_matches %}
+      <div class="card">
+        <span class="badge {{ match.status|lower }}">{{ match.status }}</span>
+        <span class="chip">{{ match.score }}% estimated match</span>
+        <h3><a href="{{ url_for('item_detail', item_id=match.id) }}" style="text-decoration:none;color:inherit">{{ match.name }}</a></h3>
+        <p>{{ match.description }}</p>
+        <p>{{ match.category }} · 📍 {{ match.city or 'City not provided' }}{% if match.state %}, {{ match.state }}{% endif %}</p>
+        <small>Report date: {{ match.date }}</small>
+        {% if match.reasons %}<p><strong>Why suggested:</strong> {{ match.reasons|join('; ') }}.</p>{% endif %}
+        <small>Text method: {{ match.text_method }}. Ranking estimate only; not a probability or proof of ownership.</small>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:24px 0;">No eligible reports matched this description and filter combination.</div>
+      {% endfor %}
+    {% else %}
     {% for i in items %}
       <div class="card">
-        <a href="{{ url_for('item_detail', item_id=i[0]) }}" style="text-decoration:none;color:inherit">
-          <span class="badge {{ i[8]|lower }}">{{ i[8] }}</span>
-          <h3>{{ i[2] }}</h3>
-          <p>{{ i[4] }}</p>
-          <p>📍 {{ i[5] }} · <span onclick="event.preventDefault();window.open('https://www.openstreetmap.org/search?query={{ i[5]|urlencode }}','_blank','noopener')">Open map</span></p>
-          <small>{{ i[6] }}</small>
+        <a href="{{ url_for('item_detail', item_id=i.id) }}" style="text-decoration:none;color:inherit">
+          <span class="badge {{ i.status|lower }}">{{ i.status }}</span>
+          <h3>{{ i.name }}</h3>
+          <p>{{ i.description }}</p>
+          <p>📍 {{ i.city or 'City not provided' }}{% if i.state %}, {{ i.state }}{% endif %}</p>
+          <small>Report date: {{ i.date }}</small>
         </a>
-        {% if i[8] in ['Found', 'Claim Submitted'] %}
-          {% if session.get('user_id') and i[1] != session.get('user_id') %}
-            <a class="btn" href="{{ url_for('item_detail', item_id=i[0]) }}#claim">Claim this item</a>
+        {% if i.status in ['Found', 'Claim Submitted'] %}
+          {% if session.get('user_id') and i.user_id != session.get('user_id') %}
+            <a class="btn" href="{{ url_for('item_detail', item_id=i.id) }}#claim">Claim this item</a>
           {% elif not session.get('user_id') %}
             <a class="muted-link" href="{{ url_for('login') }}">Sign in to claim</a>
           {% endif %}
@@ -137,19 +164,35 @@
     {% else %}
       <div class="empty-state" style="padding:24px 0;">No reports found for the selected filters.</div>
     {% endfor %}
+    {% endif %}
   </div>
+  {% if total_pages > 1 %}
+  <nav aria-label="Search result pages" style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:20px">
+    {% if page > 1 %}<a class="btn secondary" href="{{ previous_url }}">Previous</a>{% endif %}
+    <span>Page {{ page }} of {{ total_pages }} · {{ total_results }} reports</span>
+    {% if page < total_pages %}<a class="btn secondary" href="{{ next_url }}">Next</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map = L.map('bengaluruMap').setView([12.9716, 77.5946], 11);
+const map = L.map('indiaReportsMap').setView([22.5, 79], 4.5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
+  maxZoom: 18,
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
-const items = {{ map_items | tojson }};
-items.forEach(item => {
-  const marker = L.marker([item.lat, item.lng]).addTo(map);
-  marker.bindPopup(`<strong>${item.name}</strong><br>${item.status}<br>${item.location}`);
+const reports = {{ map_items | tojson }};
+reports.forEach(report => {
+  const marker = L.marker([report.lat, report.lng]).addTo(map);
+  const popup = document.createElement('div');
+  const title = document.createElement('strong');
+  title.textContent = report.name;
+  const status = document.createElement('div');
+  status.textContent = report.status;
+  const region = document.createElement('div');
+  region.textContent = report.location;
+  popup.append(title, status, region);
+  marker.bindPopup(popup);
 });
 </script>
 {% endblock %}
